@@ -19,10 +19,12 @@ def install(context):
     run(context, f"{sys.executable} -m pip install --upgrade -r requirements.txt")
 
 
-@invoke.task(install)
+@invoke.task()
 def clean(context):
     # type: (invoke.Context) -> None
-    run(context, f"{sys.executable} setup.py develop --uninstall")
+    # run(context, f"{sys.executable} setup.py develop --uninstall")
+    run(context, f"{sys.executable} -m pip uninstall --yes automap")
+
     for artifact in ("*.egg-info", "*.so", "build", "dist"):
         run(context, f"rm -rf {artifact}")
     run(context, f"{sys.executable} -m black .")
@@ -31,7 +33,8 @@ def clean(context):
 @invoke.task(clean)
 def build(context):
     # type: (invoke.Context) -> None
-    run(context, f"{sys.executable} setup.py develop")
+    # run(context, f"{sys.executable} setup.py develop")
+    run(context, f"{sys.executable} -m pip -v install .")
 
 
 @invoke.task(build)
@@ -68,7 +71,7 @@ def do_work(info):
     return items, create, access, size
 
 
-@invoke.task(test)
+@invoke.task(build)
 def performance(context):
     # type: (invoke.Context) -> None
     print("TYPE\tITEMS\tCREATE\tACCESS\tSIZE")
@@ -81,6 +84,7 @@ def performance(context):
             total_create = []
             total_access = []
             total_size = []
+
             for items, create, access, size in pool.imap(
                 do_work, itertools.product((kind,), range(6), range(1, 10))
             ):
