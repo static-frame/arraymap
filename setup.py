@@ -26,8 +26,8 @@ extension = setuptools.Extension(
 
 
 setuptools.setup(
-    author="Brandt Bucher, Christopher Ariza",
-    description="Dictionary-like lookup from NumPy array values to integer positions",
+    author="Christopher Ariza, Brandt Bucher",
+    description="Dictionary-like lookup from NumPy array values to their integer positions",
     ext_modules=[extension],
     license="MIT",
     long_description=LONG_DESCRIPTION,
