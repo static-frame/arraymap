@@ -28,4 +28,4 @@ def build(context):
 
 @invoke.task(build)
 def test(context):
-    run(context, f"{sys.executable} -m pytest -v")
+    run(context, f"{sys.executable} -m pytest")

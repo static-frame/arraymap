@@ -2105,20 +2105,21 @@ PyInit_arraymap(void)
         return NULL;
     }
 
-    PyObject *arraymap = PyModule_Create(&arraymap_module);
+    PyObject *m = PyModule_Create(&arraymap_module);
     if (
-        !arraymap
+        !m
+        || PyModule_AddStringConstant(m, "__version__", Py_STRINGIFY(AM_VERSION))
         || PyType_Ready(&AMType)
         || PyType_Ready(&FAMIType)
         || PyType_Ready(&FAMVType)
         || PyType_Ready(&FAMType)
-        || PyModule_AddObject(arraymap, "AutoMap", (PyObject *)&AMType)
-        || PyModule_AddObject(arraymap, "FrozenAutoMap", (PyObject *)&FAMType)
-        || PyModule_AddObject(arraymap, "NonUniqueError", NonUniqueError)
+        || PyModule_AddObject(m, "AutoMap", (PyObject *)&AMType)
+        || PyModule_AddObject(m, "FrozenAutoMap", (PyObject *)&FAMType)
+        || PyModule_AddObject(m, "NonUniqueError", NonUniqueError)
     ) {
-        Py_XDECREF(arraymap);
+        Py_XDECREF(m);
         return NULL;
     }
-    return arraymap;
+    return m;
 }
 

@@ -8,6 +8,13 @@ from arraymap import AutoMap
 from arraymap import FrozenAutoMap
 from arraymap import NonUniqueError
 
+def test_version():
+    import arraymap
+    assert isinstance(arraymap.__version__, str)
+
+
+# ------------------------------------------------------------------------------
+
 
 def test_am_extend():
     am1 = AutoMap(("a", "b"))

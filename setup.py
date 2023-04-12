@@ -3,6 +3,10 @@ import typing as tp
 import site
 import os
 
+
+AM_VERSION = "0.1.1"
+
+
 with open("README.md") as file:
     LONG_DESCRIPTION = file.read()
 
@@ -21,12 +25,14 @@ extension = setuptools.Extension(
     ["arraymap.c"],
     include_dirs=get_ext_dir("numpy", "core", "include"),
     library_dirs=get_ext_dir("numpy", "core", "lib"),
+    define_macros=[("AM_VERSION", AM_VERSION)],
     libraries=["npymath"],  # not including mlib at this time
 )
 
 
 setuptools.setup(
     author="Christopher Ariza, Brandt Bucher",
+    version=AM_VERSION,
     description="Dictionary-like lookup from NumPy array values to their integer positions",
     ext_modules=[extension],
     license="MIT",
@@ -35,5 +41,4 @@ setuptools.setup(
     name="arraymap",
     python_requires=">=3.7.0",
     url="https://github.com/static-frame/arraymap",
-    version="0.1.0",
 )
