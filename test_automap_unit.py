@@ -4,9 +4,9 @@ import pytest
 import sys
 import numpy as np
 
-from automap import AutoMap
-from automap import FrozenAutoMap
-from automap import NonUniqueError
+from arraymap import AutoMap
+from arraymap import FrozenAutoMap
+from arraymap import NonUniqueError
 
 
 def test_am_extend():

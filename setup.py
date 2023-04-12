@@ -17,8 +17,8 @@ def get_ext_dir(*components: tp.Iterable[str]) -> tp.Sequence[str]:
 
 
 extension = setuptools.Extension(
-    "automap",
-    ["automap.c"],
+    "arraymap",
+    ["arraymap.c"],
     include_dirs=get_ext_dir("numpy", "core", "include"),
     library_dirs=get_ext_dir("numpy", "core", "lib"),
     libraries=["npymath"],  # not including mlib at this time

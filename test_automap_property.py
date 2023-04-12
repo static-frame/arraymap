@@ -13,9 +13,9 @@ from hypothesis import given
 
 import pytest
 
-from automap import AutoMap
-from automap import FrozenAutoMap
-from automap import NonUniqueError
+from arraymap import AutoMap
+from arraymap import FrozenAutoMap
+from arraymap import NonUniqueError
 
 Keys = typing.Set[typing.Hashable]
 

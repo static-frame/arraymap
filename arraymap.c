@@ -504,7 +504,7 @@ static PyTypeObject FAMIType = {
     .tp_iter = (getiterfunc) fami_iter,
     .tp_iternext = (iternextfunc) fami_iternext,
     .tp_methods = fami_methods,
-    .tp_name = "automap.FrozenAutoMapIterator",
+    .tp_name = "arraymap.FrozenAutoMapIterator",
 };
 
 
@@ -677,7 +677,7 @@ static PyTypeObject FAMVType = {
     .tp_dealloc = (destructor) famv_dealloc,
     .tp_iter = (getiterfunc) famv_fami_new,
     .tp_methods = famv_methods,
-    .tp_name = "automap.FrozenAutoMapView",
+    .tp_name = "arraymap.FrozenAutoMapView",
     .tp_richcompare = (richcmpfunc) famv_richcompare,
 };
 
@@ -2115,7 +2115,7 @@ static PyTypeObject FAMType = {
     .tp_hash = (hashfunc) fam_hash,
     .tp_iter = (getiterfunc) fam_iter,
     .tp_methods = fam_methods,
-    .tp_name = "automap.FrozenAutoMap",
+    .tp_name = "arraymap.FrozenAutoMap",
     .tp_new = fam_new,
     .tp_init = fam_init,
     .tp_repr = (reprfunc) fam_repr,
@@ -2180,7 +2180,7 @@ static PyTypeObject AMType = {
     .tp_base = &FAMType,
     .tp_doc = "A grow-only autoincremented integer-valued mapping.",
     .tp_methods = am_methods,
-    .tp_name = "automap.AutoMap",
+    .tp_name = "arraymap.AutoMap",
     .tp_richcompare = (richcmpfunc) fam_richcompare,
 };
 
@@ -2188,21 +2188,21 @@ static PyTypeObject AMType = {
 //------------------------------------------------------------------------------
 // module definition
 
-static struct PyModuleDef automap_module = {
+static struct PyModuleDef arraymap_module = {
     .m_base = PyModuleDef_HEAD_INIT,
-    .m_doc = "High-performance autoincremented integer-valued mappings.",
-    .m_name = "automap",
+    .m_doc = "Dictionary-like lookup from NumPy array values to integer positions",
+    .m_name = "arraymap",
     .m_size = -1,
 };
 
 
 PyObject *
-PyInit_automap(void)
+PyInit_arraymap(void)
 {
     import_array();
 
     NonUniqueError = PyErr_NewExceptionWithDoc(
-            "automap.NonUniqueError",
+            "arraymap.NonUniqueError",
             "ValueError for non-unique values.",
             PyExc_ValueError,
             NULL);
@@ -2210,20 +2210,20 @@ PyInit_automap(void)
         return NULL;
     }
 
-    PyObject *automap = PyModule_Create(&automap_module);
+    PyObject *arraymap = PyModule_Create(&arraymap_module);
     if (
-        !automap
+        !arraymap
         || PyType_Ready(&AMType)
         || PyType_Ready(&FAMIType)
         || PyType_Ready(&FAMVType)
         || PyType_Ready(&FAMType)
-        || PyModule_AddObject(automap, "AutoMap", (PyObject *)&AMType)
-        || PyModule_AddObject(automap, "FrozenAutoMap", (PyObject *)&FAMType)
-        || PyModule_AddObject(automap, "NonUniqueError", NonUniqueError)
+        || PyModule_AddObject(arraymap, "AutoMap", (PyObject *)&AMType)
+        || PyModule_AddObject(arraymap, "FrozenAutoMap", (PyObject *)&FAMType)
+        || PyModule_AddObject(arraymap, "NonUniqueError", NonUniqueError)
     ) {
-        Py_XDECREF(automap);
+        Py_XDECREF(arraymap);
         return NULL;
     }
-    return automap;
+    return arraymap;
 }
 

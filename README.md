@@ -2,9 +2,6 @@
 arraymap
 ============
 
-
-<br>
-
 `arraymap` is a Python package containing high-performance autoincremented
 integer-valued mappings.
 
