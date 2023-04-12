@@ -14,7 +14,7 @@ Packages: https://pypi.org/project/arraymap
 Dependencies
 --------------
 
-ArrayKit requires the following:
+ArrayMap requires the following:
 
 - Python >= 3.7
 - NumPy >= 1.18.5
