@@ -26,15 +26,14 @@ extension = setuptools.Extension(
 
 
 setuptools.setup(
-    author="Brandt Bucher",
-    author_email="brandt@python.org",
-    description="High-performance autoincremented integer-valued mappings.",
+    author="Brandt Bucher, Christopher Ariza",
+    description="Dictionary-like lookup from NumPy array values to integer positions",
     ext_modules=[extension],
     license="MIT",
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
-    name="automap",
+    name="arraymap",
     python_requires=">=3.7.0",
-    url="https://github.com/brandtbucher/automap",
-    version="0.6.2",
+    url="https://github.com/static-frame/arraymap",
+    version="0.1.0",
 )
