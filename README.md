@@ -2,10 +2,8 @@
 arraymap
 ============
 
-`arraymap` is a Python package containing high-performance autoincremented
-integer-valued mappings.
+`arraymap` provides Dictionary-like lookup from NumPy array values to integer position.
 
-To install, just run `pip install arraymap`.
 
 Examples
 --------
