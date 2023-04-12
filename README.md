@@ -1,15 +1,9 @@
-<div align=justify>
-
-<div align=center>
 
 arraymap
 ============
 
-[![latest version](https://img.shields.io/github/release-pre/brandtbucher/automap.svg?style=for-the-badge&label=latest)![latest release date](https://img.shields.io/github/release-date-pre/brandtbucher/automap.svg?style=for-the-badge&label=released)](https://github.com/brandtbucher/automap/releases)[![build status](https://img.shields.io/github/actions/workflow/status/brandtbucher/automap/ci.yml.svg?style=for-the-badge&branch=master)](https://github.com/brandtbucher/automap/actions)[![issues](https://img.shields.io/github/issues-raw/brandtbucher/automap.svg?label=issues&style=for-the-badge)](https://github.com/brandtbucher/automap/issues)
 
 <br>
-
-</div>
 
 `arraymap` is a Python package containing high-performance autoincremented
 integer-valued mappings.
@@ -115,4 +109,3 @@ arraymap.AutoMap(['I', 'II', 'III', 'IV'])
 arraymap.AutoMap(['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'])
 ```
 
-</div>
