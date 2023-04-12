@@ -2,8 +2,8 @@
 
 <div align=center>
 
-automap
-=======
+arraymap
+============
 
 [![latest version](https://img.shields.io/github/release-pre/brandtbucher/automap.svg?style=for-the-badge&label=latest)![latest release date](https://img.shields.io/github/release-date-pre/brandtbucher/automap.svg?style=for-the-badge&label=released)](https://github.com/brandtbucher/automap/releases)[![build status](https://img.shields.io/github/actions/workflow/status/brandtbucher/automap/ci.yml.svg?style=for-the-badge&branch=master)](https://github.com/brandtbucher/automap/actions)[![issues](https://img.shields.io/github/issues-raw/brandtbucher/automap.svg?label=issues&style=for-the-badge)](https://github.com/brandtbucher/automap/issues)
 
@@ -11,21 +11,21 @@ automap
 
 </div>
 
-`automap` is a Python package containing high-performance autoincremented
+`arraymap` is a Python package containing high-performance autoincremented
 integer-valued mappings.
 
-To install, just run `pip install automap`.
+To install, just run `pip install arraymap`.
 
 Examples
 --------
 
-`automap` objects are sort of like "inverse sequences". They come in two
+`arraymap` objects are sort of like "inverse sequences". They come in two
 variants:
 
 ### FrozenAutoMap
 
 ```py
->>> from automap import FrozenAutoMap
+>>> from arraymap import FrozenAutoMap
 ```
 
 `FrozenAutoMap` objects are immutable. They can be constructed from any iterable
@@ -39,7 +39,7 @@ Traceback (most recent call last):
 ValueError: 'A'
 >>> a = FrozenAutoMap("ABC")
 >>> a
-automap.FrozenAutoMap(['A', 'B', 'C'])
+arraymap.FrozenAutoMap(['A', 'B', 'C'])
 ```
 
 The values are integers, incrementing according to the order of the original
@@ -79,16 +79,16 @@ They may also be combined with each other using the `|` operator:
 >>> b = FrozenAutoMap(range(5))
 >>> c = FrozenAutoMap(range(5, 10))
 >>> b | c
-automap.FrozenAutoMap([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+arraymap.FrozenAutoMap([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 >>> b |= c  # Note that b is reassigned, not mutated!
 >>> b
-automap.FrozenAutoMap([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+arraymap.FrozenAutoMap([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 ```
 
 ### AutoMap
 
 ```py
->>> from automap import AutoMap
+>>> from arraymap import AutoMap
 ```
 
 Unlike `FrozenAutoMap` objects, `AutoMap` objects can grow; new keys may be
@@ -97,10 +97,10 @@ added, but existing ones may not be deleted or changed.
 ```py
 >>> d = AutoMap("ABC")
 >>> d
-automap.AutoMap(['A', 'B', 'C'])
+arraymap.AutoMap(['A', 'B', 'C'])
 >>> d |= "DEF"  # Here, d *is* mutated!
 >>> d
-automap.AutoMap(['A', 'B', 'C', 'D', 'E', 'F'])
+arraymap.AutoMap(['A', 'B', 'C', 'D', 'E', 'F'])
 ```
 
 They also have `add` and `update` methods for adding new keys:
@@ -109,20 +109,10 @@ They also have `add` and `update` methods for adding new keys:
 >>> e = AutoMap(["I", "II", "III"])
 >>> e.add("IV")
 >>> e
-automap.AutoMap(['I', 'II', 'III', 'IV'])
+arraymap.AutoMap(['I', 'II', 'III', 'IV'])
 >>> e.update(["V", "VI", "VII"])
 >>> e
-automap.AutoMap(['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'])
+arraymap.AutoMap(['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'])
 ```
-
-Performance
------------
-
-Tests show string-keyed `AutoMap` objects being created 70% faster and accessed
-5% faster than the equivalent `dict` construction, on average. They also tend to
-take up the same amount of memory. You can run `invoke performance` from this
-repository to see the comparison on your machine.
-
-More details on the design can be found in `automap.c`.
 
 </div>
