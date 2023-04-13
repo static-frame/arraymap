@@ -24,6 +24,11 @@ ArrayMap requires the following:
 What is New in ArrayMap
 -------------------------
 
+0.1.2
+-------
+
+Corrected segfault resulting from initialization from generators that raise.
+
 
 0.1.1
 -------

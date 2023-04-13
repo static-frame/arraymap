@@ -4,7 +4,7 @@ import site
 import os
 
 
-AM_VERSION = "0.1.1"
+AM_VERSION = "0.1.2"
 
 
 with open("README.md") as file:
