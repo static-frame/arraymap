@@ -8,8 +8,10 @@ from arraymap import AutoMap
 from arraymap import FrozenAutoMap
 from arraymap import NonUniqueError
 
+
 def test_version():
     import arraymap
+
     assert isinstance(arraymap.__version__, str)
 
 
@@ -36,6 +38,20 @@ def test_fam_contains():
     assert (x in fam.values()) == False
     # NOTE: exercise x to force seg fault
     assert len(x) == 0
+
+
+# ------------------------------------------------------------------------------
+
+
+def test_fam_constructor_a():
+    with pytest.raises(ZeroDivisionError):
+        fam = FrozenAutoMap((x / 0 for x in range(3)))
+
+
+def test_fam_constructor_b():
+    fam1 = FrozenAutoMap(range(3))
+    fam2 = FrozenAutoMap(fam1)
+    assert list(fam2), [0, 1, 2]
 
 
 # ------------------------------------------------------------------------------

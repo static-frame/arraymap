@@ -1189,7 +1189,11 @@ lookup(FAMObject *self, PyObject *key) {
 
 // Insert a key_pos, hash pair into the table. Assumes table already has appropriate size. When inserting a new itme, `hash` is -1, forcing a fresh hash to be computed here. Return 0 on success, -1 on error.
 static int
-insert_obj(FAMObject *self, PyObject *key, Py_ssize_t keys_pos, Py_hash_t hash)
+insert_obj(
+        FAMObject *self,
+        PyObject *key,
+        Py_ssize_t keys_pos,
+        Py_hash_t hash)
 {
     if (hash == -1) {
         hash = PyObject_Hash(key);
@@ -1819,6 +1823,9 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
 
     if (!keys) {
         keys = PyList_New(0);
+        if (!keys) {
+            return -1;
+        }
     }
     else if (PyObject_TypeCheck(keys, &FAMType)) {
         // Use `keys` as old, `self` as new, and fill from old to new. This returns the same error codes as this function.
@@ -1831,6 +1838,8 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
             return -1;
         }
         int array_t = PyArray_TYPE(a);
+        keys_size = PyArray_SIZE(a);
+
         if (cls != &AMType &&
                 (PyTypeNum_ISINTEGER(array_t) // signed and unsigned
                 || PyTypeNum_ISFLOAT(array_t)
@@ -1843,23 +1852,24 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
             keys_array_type = at_to_kat(array_t);
             Py_INCREF(keys);
         }
-        else { // if an AutoMap or an array that we do not custom-hash, we create a list
+        else { // if an AutoMap or an array that we do not handle, create a list
             if (array_t == NPY_DATETIME || array_t == NPY_TIMEDELTA){
                 keys = PySequence_List(keys); // force scalars
             }
             else {
                 keys = PyArray_ToList(a); // converts to objs
             }
+            if (!keys) {
+                return -1;
+            }
         }
-        keys_size = PyArray_SIZE(a);
     }
     else { // assume an arbitrary iterable
         keys = PySequence_List(keys);
+        if (!keys) {
+            return -1;
+        }
         keys_size = PyList_GET_SIZE(keys);
-    }
-
-    if (!keys) {
-        return -1;
     }
 
     fam->keys = keys;
@@ -1870,7 +1880,6 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
 
     // NOTE: on itialization, grow_table() does not use keys
     if (grow_table(fam, keys_size)) {
-        // assume `fam->keys` will be decrefed by the caller
         return -1;
     }
     Py_ssize_t i = 0;
