@@ -5,9 +5,9 @@ import typing as tp
 from typing import NamedTuple
 from itertools import repeat
 
-import automap
-from automap import AutoMap
-from automap import FrozenAutoMap
+import arraymap
+from arraymap import AutoMap
+from arraymap import FrozenAutoMap
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -386,7 +386,7 @@ class FFObject(FixtureFactory):
 def get_versions() -> str:
     import platform
 
-    return f"OS: {platform.system()} / AutoMap / NumPy: {np.__version__}\n"
+    return f"OS: {platform.system()} / ArrayMap: {arraymap.__version__} / NumPy: {np.__version__}\n"
 
 
 CLS_FF = (
@@ -402,7 +402,7 @@ CLS_FF = (
 FF_ORDER = [f.NAME for f in sorted(CLS_FF, key=lambda ff: ff.SORT)]
 
 # -------------------------------------------------------------------------------
-NUMBER = 50
+NUMBER = 2
 
 from itertools import product
 
@@ -476,7 +476,7 @@ def plot_performance(frame, suffix: str = ""):
     fig.text(0.05, 0.96, f"AutoMap {suffix.title()}: {NUMBER} Iterations", fontsize=10)
     fig.text(0.05, 0.90, get_versions(), fontsize=6)
 
-    fp = f"/tmp/automap-{suffix}.png"
+    fp = f"/tmp/arraymap-{suffix}.png"
     plt.subplots_adjust(
         left=0.075,
         bottom=0.05,

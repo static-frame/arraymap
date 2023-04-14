@@ -136,6 +136,12 @@ def test_fam_constructor_array_unicode_b():
         assert k in fam
 
 
+def test_fam_constructor_array_unicode_c():
+    a1 = np.array(("z0Ct", "z0DS", "z0E9"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+
 def test_fam_copy_array_unicode_a():
     a1 = np.array(("a", "ccc", "bb"))
     a1.flags.writeable = False
