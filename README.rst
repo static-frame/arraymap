@@ -36,6 +36,12 @@ ArrayMap requires the following:
 What is New in ArrayMap
 -------------------------
 
+0.1.3
+........
+
+Updated ``classifiers``, ``install_requires`` with ``setuptools``.
+
+
 0.1.2
 ........
 
