@@ -42,6 +42,7 @@ typedef struct TableElement{
 # define LOAD 0.9
 # define SCAN 16
 
+const static size_t UCS4_SIZE = sizeof(Py_UCS4);
 
 typedef enum KeysArrayType{
     KAT_LIST = 0, // must be falsy
@@ -791,7 +792,8 @@ lookup_hash_unicode(
 
     PyArrayObject *a = (PyArrayObject *)self->keys;
     // REVIEW: is this a new descr reference?
-    Py_ssize_t dt_size = PyArray_DESCR(a)->elsize / sizeof(Py_UCS4);
+    Py_ssize_t dt_size = PyArray_DESCR(a)->elsize / UCS4_SIZE;
+    Py_ssize_t cmp_bytes = Py_MIN(key_size, dt_size) * UCS4_SIZE;
 
     Py_hash_t h = 0;
     Py_UCS4* p_start = NULL;
@@ -808,7 +810,7 @@ lookup_hash_unicode(
             }
             p_start = (Py_UCS4*)PyArray_GETPTR1(a, table[table_pos].keys_pos);
             // memcmp returns 0 on match
-            if (!memcmp(p_start, key, Py_MIN(key_size, dt_size))) {
+            if (!memcmp(p_start, key, cmp_bytes)) {
                 return table_pos;
             }
             table_pos++;
@@ -833,6 +835,7 @@ lookup_hash_string(
 
     PyArrayObject *a = (PyArrayObject *)self->keys;
     Py_ssize_t dt_size = PyArray_DESCR(a)->elsize / sizeof(char);
+    Py_ssize_t cmp_bytes = Py_MIN(key_size, dt_size);
 
     Py_hash_t h = 0;
     char* p_start = NULL;
@@ -849,7 +852,7 @@ lookup_hash_string(
             }
             p_start = (char*)PyArray_GETPTR1(a, table[table_pos].keys_pos);
             // memcmp returns 0 on match
-            if (!memcmp(p_start, key, Py_MIN(key_size, dt_size))) {
+            if (!memcmp(p_start, key, cmp_bytes)) {
                 return table_pos;
             }
             table_pos++;
@@ -1110,7 +1113,7 @@ lookup_unicode(FAMObject *self, PyObject* key) {
         return -1;
     }
     PyArrayObject *a = (PyArrayObject *)self->keys;
-    Py_ssize_t dt_size = PyArray_DESCR(a)->elsize / sizeof(Py_UCS4);
+    Py_ssize_t dt_size = PyArray_DESCR(a)->elsize / UCS4_SIZE;
     // if the key_size is greater than the dtype size of the array, we know there cannot be a match
     Py_ssize_t k_size = PyUnicode_GetLength(key);
     if (k_size > dt_size) {
@@ -1435,8 +1438,8 @@ copy_to_new(PyTypeObject *cls, FAMObject *self, FAMObject *new)
     new->key_buffer = NULL;
     if (new->keys_array_type == KAT_UNICODE) {
         PyArrayObject *a = (PyArrayObject *)new->keys;
-        Py_ssize_t dt_size = PyArray_DESCR(a)->elsize / sizeof(Py_UCS4);
-        new->key_buffer = (Py_UCS4*)PyMem_Malloc((dt_size+1) * sizeof(Py_UCS4));
+        Py_ssize_t dt_size = PyArray_DESCR(a)->elsize / UCS4_SIZE;
+        new->key_buffer = (Py_UCS4*)PyMem_Malloc((dt_size+1) * UCS4_SIZE);
     }
 
     Py_ssize_t table_size_alloc = new->table_size + SCAN - 1;
@@ -1922,8 +1925,8 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
                 break;
             case KAT_UNICODE: {
                 // Over allocate buffer by 1 so there is room for null at end. This buffer is only used in lookup();
-                Py_ssize_t dt_size = PyArray_DESCR(a)->elsize / sizeof(Py_UCS4);
-                fam->key_buffer = (Py_UCS4*)PyMem_Malloc((dt_size+1) * sizeof(Py_UCS4));
+                Py_ssize_t dt_size = PyArray_DESCR(a)->elsize / UCS4_SIZE;
+                fam->key_buffer = (Py_UCS4*)PyMem_Malloc((dt_size+1) * UCS4_SIZE);
                 INSERT_FLEXIBLE(Py_UCS4, insert_unicode, ucs4_get_end_p);
                 break;
             }
