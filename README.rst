@@ -40,19 +40,19 @@ What is New in ArrayMap
 -------------------------
 
 0.1.2
--------
+........
 
 Corrected segfault resulting from initialization from generators that raise.
 
 
 0.1.1
--------
+........
 
 Added `__version__` to module; releasing wheels.
 
 
 0.1.0
--------
+........
 
 Initial release with NumPy integration.
 

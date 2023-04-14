@@ -7,7 +7,7 @@ import os
 AM_VERSION = "0.1.2"
 
 
-with open("README.md") as file:
+with open("README.rst") as file:
     LONG_DESCRIPTION = file.read()
 
 
@@ -37,7 +37,7 @@ setuptools.setup(
     ext_modules=[extension],
     license="MIT",
     long_description=LONG_DESCRIPTION,
-    long_description_content_type="text/markdown",
+    # long_description_content_type="text/markdown",
     name="arraymap",
     python_requires=">=3.7.0",
     url="https://github.com/static-frame/arraymap",
