@@ -36,6 +36,12 @@ ArrayMap requires the following:
 What is New in ArrayMap
 -------------------------
 
+0.1.4
+........
+
+Corrected comparison in lookup of Unicode elements.
+
+
 0.1.3
 ........
 
