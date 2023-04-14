@@ -6,9 +6,6 @@
 .. image:: https://img.shields.io/pypi/v/arraymap.svg
   :target: https://pypi.org/project/arraymap
 
-.. image:: https://img.shields.io/conda/vn/conda-forge/arraymap.svg
-  :target: https://anaconda.org/conda-forge/arraymap
-
 .. image:: https://img.shields.io/github/actions/workflow/status/static-frame/arraymap/ci.yml?branch=master&label=build&logo=Github
   :target: https://github.com/static-frame/arraymap/actions/workflows/ci.yml
 
