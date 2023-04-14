@@ -791,7 +791,6 @@ lookup_hash_unicode(
     Py_ssize_t table_pos = hash & mask;
 
     PyArrayObject *a = (PyArrayObject *)self->keys;
-    // REVIEW: is this a new descr reference?
     Py_ssize_t dt_size = PyArray_DESCR(a)->elsize / UCS4_SIZE;
     Py_ssize_t cmp_bytes = Py_MIN(key_size, dt_size) * UCS4_SIZE;
 
