@@ -91,6 +91,7 @@ def test_fam_constructor_array_int_d():
     for k in a1:
         assert k in fam
 
+
 # ------------------------------------------------------------------------------
 
 
@@ -140,7 +141,8 @@ def test_fam_constructor_array_unicode_d():
     a1 = np.array(["", "\x000"], dtype="U2")
     a1.flags.writeable = False
     fam = FrozenAutoMap(a1)
-    import ipdb; ipdb.set_trace()
+    assert len(fam) == 2
+    assert list(fam) == ["", "\x000"]
 
 
 def test_fam_copy_array_unicode_a():
