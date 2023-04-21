@@ -91,12 +91,6 @@ def test_fam_constructor_array_int_d():
     for k in a1:
         assert k in fam
 
-
-# def test_fam_constructor_array_a3():
-#     a1 = np.array(("a", "bb", "ccc"))
-#     with pytest.raises(TypeError):
-#         fam = FrozenAutoMap(a1)
-
 # ------------------------------------------------------------------------------
 
 
@@ -140,6 +134,13 @@ def test_fam_constructor_array_unicode_c():
     a1 = np.array(("z0Ct", "z0DS", "z0E9"))
     a1.flags.writeable = False
     fam = FrozenAutoMap(a1)
+
+
+def test_fam_constructor_array_unicode_d():
+    a1 = np.array(["", "\x000"], dtype="U2")
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    import ipdb; ipdb.set_trace()
 
 
 def test_fam_copy_array_unicode_a():
