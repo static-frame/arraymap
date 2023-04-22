@@ -123,35 +123,16 @@ typedef enum ViewKind{
 
 
 // NOTE: would like to use strchr(str, '\0') instead of this routine, but some buffers might not have a null terminator and stread by full to the the dt_size.
-// static inline Py_UCS4*
-// ucs4_get_end_p(Py_UCS4* p, Py_ssize_t dt_size) {
-//     Py_UCS4* p_end = p + dt_size; // invalid
-//     while (p < p_end && *p != '\0') {
-//         p++;
-//     }
-//     return p; // this might point to null, or point to one after end
-// }
-
-// 5 start, length of 4, valid values are (5, 6, 7, 8)
-// last valid is start + len - 1
-
-// Return a pointer to the last valid character in the field.
 static inline Py_UCS4*
 ucs4_get_end_p(Py_UCS4* p_start, Py_ssize_t dt_size) {
-    Py_UCS4* p = p_start + dt_size - 1;
-    while (p > p_start) {
+    Py_UCS4* p;
+    for (p = p_start + dt_size - 1; p >= p_start; p--) {
         if (*p != '\0') {
-            return p + 1;
+            return p + 1; // return 1 more than the first non-null from the right
         }
-        p--;
     }
-    // p is start; it may or may not be null; if its not null, return 1 more
-    if (*p != '\0') {
-        return p + 1;
-    }
-    return p;
+    return p; // p is equal to p_start
 }
-
 
 
 static inline char*

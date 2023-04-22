@@ -137,14 +137,7 @@ def test_fam_constructor_array_unicode_c():
     fam = FrozenAutoMap(a1)
 
 
-def test_fam_constructor_array_unicode_d():
-    a1 = np.array(["", "\x000"], dtype="U2")
-    a1.flags.writeable = False
-    fam = FrozenAutoMap(a1)
-    assert len(fam) == 2
-    assert list(fam) == ["", "\x000"]
-
-
+# NOTE
 # >>> u = "\x000\x00"
 # >>> len(u)
 # 3
@@ -154,6 +147,26 @@ def test_fam_constructor_array_unicode_d():
 # array(['\x000', ''], dtype='<U4')
 # >>> len(a1[0])
 # 2
+
+
+def test_fam_constructor_array_unicode_d1():
+    a1 = np.array(["", "\x000"], dtype="U2")
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    assert len(fam) == 2
+    assert list(fam) == ["", "\x000"]
+    assert "" in fam
+    assert "\x000" in fam
+
+
+def test_fam_constructor_array_unicode_d2():
+    a1 = np.array(["", "\x000\x00"], dtype="U3")
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    assert len(fam) == 2
+    assert list(fam) == ["", "\x000"] # we lost the last null
+    assert "" in fam
+    assert "\x000" in fam
 
 
 def test_fam_copy_array_unicode_a():
