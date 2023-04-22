@@ -164,7 +164,7 @@ def test_fam_constructor_array_unicode_d2():
     a1.flags.writeable = False
     fam = FrozenAutoMap(a1)
     assert len(fam) == 2
-    assert list(fam) == ["", "\x000"] # we lost the last null
+    assert list(fam) == ["", "\x000"]  # we lost the last null
     assert "" in fam
     assert "\x000" in fam
 

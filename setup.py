@@ -4,7 +4,7 @@ import site
 import os
 
 
-AM_VERSION = "0.1.4"
+AM_VERSION = "0.1.5"
 
 
 with open("README.rst") as file:

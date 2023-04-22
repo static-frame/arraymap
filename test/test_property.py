@@ -52,7 +52,10 @@ def get_array() -> st.SearchStrategy:
             shape=1, unique=True, fill=st.nothing(), dtype=scalar_dtypes()
         ).map(partial(proc, contiguous=contiguous))
 
-    return st.one_of(strategy(contiguous=True), strategy(contiguous=False))
+    return st.one_of(
+        strategy(contiguous=True),
+        strategy(contiguous=False),
+    )
 
 
 @given(keys=hypothesis.infer)
