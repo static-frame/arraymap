@@ -36,6 +36,12 @@ ArrayMap requires the following:
 What is New in ArrayMap
 -------------------------
 
+0.1.5
+........
+
+Improved handling for Unicode elements that contain non-terminal NULL strings.
+
+
 0.1.4
 ........
 
