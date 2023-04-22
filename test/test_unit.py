@@ -145,6 +145,17 @@ def test_fam_constructor_array_unicode_d():
     assert list(fam) == ["", "\x000"]
 
 
+# >>> u = "\x000\x00"
+# >>> len(u)
+# 3
+# >>> a1 = np.array(['', ''], dtype='U4')
+# >>> a1[0] = u
+# >>> a1
+# array(['\x000', ''], dtype='<U4')
+# >>> len(a1[0])
+# 2
+
+
 def test_fam_copy_array_unicode_a():
     a1 = np.array(("a", "ccc", "bb"))
     a1.flags.writeable = False
