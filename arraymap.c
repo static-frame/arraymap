@@ -1571,6 +1571,12 @@ get(FAMObject *self, PyObject *key, PyObject *missing) {
 
 
 static PyObject *
+fam_get_many(FAMObject *self, PyObject *key) {
+    Py_RETURN_NONE;
+}
+
+
+static PyObject *
 fam_subscript(FAMObject *self, PyObject *key)
 {
     return get(self, key, NULL);
@@ -2008,6 +2014,7 @@ static PyMethodDef fam_methods[] = {
     {"items", (PyCFunction) fam_items, METH_NOARGS, NULL},
     {"keys", (PyCFunction) fam_keys, METH_NOARGS, NULL},
     {"values", (PyCFunction) fam_values, METH_NOARGS, NULL},
+    {"get_many", (PyCFunction) fam_get_many, METH_VARARGS, NULL},
     {NULL},
 };
 

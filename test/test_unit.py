@@ -655,9 +655,15 @@ def test_fam_array_pickle_a():
     a1 = np.array(("a", "b", "c", "d"))
     a1.flags.writeable = False
     fam1 = FrozenAutoMap(a1)
-
     fam2 = pickle.loads(pickle.dumps(fam1))
+    assert list(fam1.values()) == list(fam2.values())
 
-    # import ipdb
 
-    # ipdb.set_trace()
+# ------------------------------------------------------------------------------
+
+
+def test_fam_array_get_many_a():
+    a1 = np.array((1, 100, 300, 4000))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    assert fam.get_many([]) == None
