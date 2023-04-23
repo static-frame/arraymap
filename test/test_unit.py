@@ -666,4 +666,20 @@ def test_fam_array_get_many_a():
     a1 = np.array((1, 100, 300, 4000))
     a1.flags.writeable = False
     fam = FrozenAutoMap(a1)
-    assert fam.get_many([]) == None
+
+    with pytest.raises(TypeError):
+        fam.get_many((3, 3))
+
+    with pytest.raises(TypeError):
+        fam.get_many("a")
+
+    with pytest.raises(TypeError):
+        fam.get_many(None)
+
+
+def test_fam_array_get_many_b():
+    a1 = np.array((1, 100, 300, 4000))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    assert fam.get_many([300, 100]) == [2, 1]
+    assert fam.get_many([4000, 4000, 4000]) == [3, 3, 3]

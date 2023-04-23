@@ -1572,7 +1572,31 @@ get(FAMObject *self, PyObject *key, PyObject *missing) {
 
 static PyObject *
 fam_get_many(FAMObject *self, PyObject *key) {
-    Py_RETURN_NONE;
+
+    Py_ssize_t key_size = 0;
+
+    if (PyList_CheckExact(key)) {
+        key_size = PyList_GET_SIZE(key);
+        PyObject* values = PyList_New(key_size);
+        if (!values) {
+            return NULL;
+        }
+        for (Py_ssize_t i = 0; i < key_size; i++) {
+            PyObject* k = PyList_GET_ITEM(key, i);
+            Py_ssize_t keys_pos = lookup(self, k);
+            PyList_SET_ITEM(values,
+                    i,
+                    PyList_GET_ITEM(int_cache, keys_pos));
+        }
+        return values;
+    }
+    else if (PyArray_Check(key)) {
+        Py_RETURN_NONE;
+    }
+
+    PyErr_SetString(PyExc_TypeError, "Must provide a list or array.");
+    return NULL;
+
 }
 
 
@@ -2014,7 +2038,7 @@ static PyMethodDef fam_methods[] = {
     {"items", (PyCFunction) fam_items, METH_NOARGS, NULL},
     {"keys", (PyCFunction) fam_keys, METH_NOARGS, NULL},
     {"values", (PyCFunction) fam_values, METH_NOARGS, NULL},
-    {"get_many", (PyCFunction) fam_get_many, METH_VARARGS, NULL},
+    {"get_many", (PyCFunction) fam_get_many, METH_O, NULL},
     {NULL},
 };
 
