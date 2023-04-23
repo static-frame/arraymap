@@ -358,6 +358,14 @@ def test_fam_array_int_get_d():
     assert 4 in fam
 
 
+def test_fam_array_int_get_e():
+    a1 = np.array((1,), dtype=np.int16)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    assert a1[0] in fam
+    assert 1 in fam
+
+
 # ------------------------------------------------------------------------------
 
 
