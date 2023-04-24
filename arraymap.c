@@ -1581,12 +1581,14 @@ fam_get_many(FAMObject *self, PyObject *key) {
         if (!values) {
             return NULL;
         }
+        PyObject* k = NULL;
+        PyObject* v = NULL;
         for (Py_ssize_t i = 0; i < key_size; i++) {
-            PyObject* k = PyList_GET_ITEM(key, i);
+            k = PyList_GET_ITEM(key, i); // borrow
             Py_ssize_t keys_pos = lookup(self, k);
-            PyList_SET_ITEM(values,
-                    i,
-                    PyList_GET_ITEM(int_cache, keys_pos));
+            v = PyList_GET_ITEM(int_cache, keys_pos);
+            Py_INCREF(v); // inc as set will steal
+            PyList_SET_ITEM(values, i, v); // steals ref
         }
         return values;
     }

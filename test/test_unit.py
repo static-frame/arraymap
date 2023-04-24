@@ -681,5 +681,12 @@ def test_fam_array_get_many_b():
     a1 = np.array((1, 100, 300, 4000))
     a1.flags.writeable = False
     fam = FrozenAutoMap(a1)
-    assert fam.get_many([300, 100]) == [2, 1]
-    assert fam.get_many([4000, 4000, 4000]) == [3, 3, 3]
+    post1 = fam.get_many([300, 100])
+    assert post1 == [2, 1]
+    x = [y for y in post1]
+    del x
+    del post1
+    post2 = fam.get_many([4000, 4000, 4000])
+    assert post2 == [3, 3, 3]
+    x = [y for y in post2]
+    del x
