@@ -1571,11 +1571,20 @@ get(FAMObject *self, PyObject *key, PyObject *missing) {
 
 
 static PyObject *
-fam_get_many(FAMObject *self, PyObject *key) {
+fam_get_many(FAMObject *self, PyObject *args) {
+
+    PyObject *key, *partial = NULL;
+    if (!PyArg_UnpackTuple(args,
+            Py_TYPE(self)->tp_name,
+            2,
+            2,
+            &key,
+            &partial)) {
+        return NULL;
+    }
 
     Py_ssize_t key_size = 0;
     Py_ssize_t keys_pos = -1;
-    // NOTE: could support partial_selection, which will need to always return a list of varaible size
 
     // given list, return list
     // if (PyList_CheckExact(key)) {
@@ -2107,7 +2116,7 @@ static PyMethodDef fam_methods[] = {
     {"items", (PyCFunction) fam_items, METH_NOARGS, NULL},
     {"keys", (PyCFunction) fam_keys, METH_NOARGS, NULL},
     {"values", (PyCFunction) fam_values, METH_NOARGS, NULL},
-    {"get_many", (PyCFunction) fam_get_many, METH_O, NULL},
+    {"get_many", (PyCFunction) fam_get_many, METH_VARARGS, NULL},
     {NULL},
 };
 
