@@ -1582,37 +1582,70 @@ fam_get_many(FAMObject *self, PyObject *args) {
             &partial)) {
         return NULL;
     }
-
+    int is_partial = PyObject_IsTrue(partial);
     Py_ssize_t key_size = 0;
     Py_ssize_t keys_pos = -1;
 
-    // given list, return list
-    // if (PyList_CheckExact(key)) {
-    //     key_size = PyList_GET_SIZE(key);
-    //     PyObject* values = PyList_New(key_size);
-    //     if (!values) {
-    //         return NULL;
-    //     }
-    //     PyObject* k = NULL;
-    //     PyObject* v = NULL;
-    //     for (Py_ssize_t i = 0; i < key_size; i++) {
-    //         k = PyList_GET_ITEM(key, i); // borrow
-    //         keys_pos = lookup(self, k);
-    //         if (keys_pos < 0) {
-    //             Py_DECREF(values);
-    //             if (PyErr_Occurred()) {
-    //                 return NULL;
-    //             }
-    //             PyErr_SetObject(PyExc_KeyError, k);
-    //             return NULL;
-    //         }
-    //         v = PyList_GET_ITEM(int_cache, keys_pos);
-    //         Py_INCREF(v); // inc as set will steal
-    //         PyList_SET_ITEM(values, i, v); // steals ref
-    //     }
-    //     return values;
-    // }
-    if (PyList_CheckExact(key)) { // given list, return array; this is fastest
+    if (PyList_CheckExact(key) && is_partial) { // given list, return list
+        key_size = PyList_GET_SIZE(key);
+        PyObject* values = PyList_New(0);
+        if (!values) {
+            return NULL;
+        }
+        PyObject* k = NULL;
+        PyObject* v = NULL;
+        for (Py_ssize_t i = 0; i < key_size; i++) {
+            k = PyList_GET_ITEM(key, i); // borrow
+            keys_pos = lookup(self, k);
+            if (keys_pos < 0) {
+                if (PyErr_Occurred()) { // only exit if exception set
+                    Py_DECREF(values);
+                    return NULL;
+                }
+                continue;
+            }
+            v = PyList_GET_ITEM(int_cache, keys_pos); // borrow
+            if (PyList_Append(values, v)) {
+                Py_DECREF(values);
+                return NULL;
+            }
+        }
+        return values; // might empty
+    }
+    if (PyArray_Check(key) && is_partial) { // given array, return list
+        PyArrayObject* key_array = (PyArrayObject *)key;
+        key_size = PyArray_SIZE(key_array);
+        PyObject* values = PyList_New(0);
+        if (!values) {
+            return NULL;
+        }
+        PyObject* k = NULL;
+        PyObject* v = NULL;
+        for (Py_ssize_t i = 0; i < key_size; i++) {
+            k = PyArray_ToScalar(PyArray_GETPTR1(key_array, i), key_array);
+            if (k == NULL) {
+                Py_DECREF(values);
+                return NULL;
+            }
+            keys_pos = lookup(self, k);
+            Py_DECREF(k);
+            if (keys_pos < 0) {
+                if (PyErr_Occurred()) { // only exit if exception set
+                    Py_DECREF(values);
+                    return NULL;
+                }
+                continue;
+            }
+            v = PyList_GET_ITEM(int_cache, keys_pos); // borrow
+            if (PyList_Append(values, v)) {
+                Py_DECREF(values);
+                return NULL;
+            }
+        }
+        return values;
+    }
+
+    if (PyList_CheckExact(key)) { // given list, return array
         key_size = PyList_GET_SIZE(key);
 
         npy_intp dims[] = {key_size};
@@ -1638,7 +1671,7 @@ fam_get_many(FAMObject *self, PyObject *args) {
         }
         return array;
     }
-    else if (PyArray_Check(key)) { // given array, return array: this is slowest
+    if (PyArray_Check(key)) { // given array, return array
         PyArrayObject* key_array = (PyArrayObject *)key;
         key_size = PyArray_SIZE(key_array);
         npy_intp dims[] = {key_size};

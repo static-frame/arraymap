@@ -714,3 +714,33 @@ def test_fam_array_get_many_d2():
     fam = FrozenAutoMap(a1)
     with pytest.raises(KeyError):
         fam.get_many(np.array(("bb", "a", "ccc", "aa")), False)
+
+
+def test_fam_array_get_many_d3():
+    a1 = np.array(("a", "bb", "ccc"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    post1 = fam.get_many(["bbb", "ccc", "a", "bbb"], True)
+    assert post1 == [2, 0]
+
+    post2 = fam.get_many(["bbb", "bbb"], True)
+    assert post2 == []
+
+
+def test_fam_array_get_many_e1():
+    a1 = np.array(("a", "bb", "ccc"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    post1 = fam.get_many(np.array(("bbb", "a", "ccc", "aa", "bbb")), True)
+    assert post1 == [0, 2]
+
+
+def test_fam_array_get_many_e3():
+    a1 = np.array(("a", "bb", "ccc"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    post1 = fam.get_many(np.array(["bbb", "ccc", "a", "bbb"]), True)
+    assert post1 == [2, 0]
+
+    post2 = fam.get_many(np.array(["bbb", "bbb"]), True)
+    assert post2 == []
