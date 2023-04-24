@@ -1575,34 +1575,61 @@ fam_get_many(FAMObject *self, PyObject *key) {
 
     Py_ssize_t key_size = 0;
     Py_ssize_t keys_pos = -1;
-    // note: could support partial_selection, which will need to always return a list of varaible size
+    // NOTE: could support partial_selection, which will need to always return a list of varaible size
 
-    if (PyList_CheckExact(key)) {
+    // given list, return list
+    // if (PyList_CheckExact(key)) {
+    //     key_size = PyList_GET_SIZE(key);
+    //     PyObject* values = PyList_New(key_size);
+    //     if (!values) {
+    //         return NULL;
+    //     }
+    //     PyObject* k = NULL;
+    //     PyObject* v = NULL;
+    //     for (Py_ssize_t i = 0; i < key_size; i++) {
+    //         k = PyList_GET_ITEM(key, i); // borrow
+    //         keys_pos = lookup(self, k);
+    //         if (keys_pos < 0) {
+    //             Py_DECREF(values);
+    //             if (PyErr_Occurred()) {
+    //                 return NULL;
+    //             }
+    //             PyErr_SetObject(PyExc_KeyError, k);
+    //             return NULL;
+    //         }
+    //         v = PyList_GET_ITEM(int_cache, keys_pos);
+    //         Py_INCREF(v); // inc as set will steal
+    //         PyList_SET_ITEM(values, i, v); // steals ref
+    //     }
+    //     return values;
+    // }
+    if (PyList_CheckExact(key)) { // given list, return array; this is fastest
         key_size = PyList_GET_SIZE(key);
-        PyObject* values = PyList_New(key_size);
-        if (!values) {
+
+        npy_intp dims[] = {key_size};
+        PyObject *array = PyArray_EMPTY(1, dims, NPY_INT64, 0);
+        if (array == NULL) {
             return NULL;
         }
-        PyObject* k = NULL;
-        PyObject* v = NULL;
+        npy_int64* b = (npy_int64*)PyArray_DATA((PyArrayObject*)array);
+        PyObject* k;
+
         for (Py_ssize_t i = 0; i < key_size; i++) {
             k = PyList_GET_ITEM(key, i); // borrow
             keys_pos = lookup(self, k);
             if (keys_pos < 0) {
-                Py_DECREF(values);
+                Py_DECREF(array);
                 if (PyErr_Occurred()) {
                     return NULL;
                 }
                 PyErr_SetObject(PyExc_KeyError, k);
                 return NULL;
             }
-            v = PyList_GET_ITEM(int_cache, keys_pos);
-            Py_INCREF(v); // inc as set will steal
-            PyList_SET_ITEM(values, i, v); // steals ref
+            b[i] = (npy_int64)keys_pos;
         }
-        return values;
+        return array;
     }
-    else if (PyArray_Check(key)) {
+    else if (PyArray_Check(key)) { // given array, return array: this is slowest
         PyArrayObject* key_array = (PyArrayObject *)key;
         key_size = PyArray_SIZE(key_array);
         npy_intp dims[] = {key_size};
@@ -1632,6 +1659,7 @@ fam_get_many(FAMObject *self, PyObject *key) {
             Py_DECREF(k);
             b[i] = (npy_int64)keys_pos;
         }
+        // TODO: make array immutable
         return array;
     }
 
