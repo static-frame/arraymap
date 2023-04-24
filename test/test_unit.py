@@ -690,3 +690,27 @@ def test_fam_array_get_many_b():
     assert post2 == [3, 3, 3]
     x = [y for y in post2]
     del x
+
+
+def test_fam_array_get_many_c():
+    a1 = np.array(("a", "bb", "ccc"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    with pytest.raises(KeyError):
+        fam.get_many(["bb", "c"])
+
+
+def test_fam_array_get_many_d1():
+    a1 = np.array(("a", "bb", "ccc"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    post1 = fam.get_many(np.array(("bb", "a", "ccc", "a", "bb")))
+    assert post1.tolist() == [1, 0, 2, 0, 1]
+
+
+def test_fam_array_get_many_d2():
+    a1 = np.array(("a", "bb", "ccc"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    with pytest.raises(KeyError):
+        fam.get_many(np.array(("bb", "a", "ccc", "aa")))

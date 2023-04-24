@@ -1574,6 +1574,8 @@ static PyObject *
 fam_get_many(FAMObject *self, PyObject *key) {
 
     Py_ssize_t key_size = 0;
+    Py_ssize_t keys_pos = -1;
+    // note: could support partial_selection, which will need to always return a list of varaible size
 
     if (PyList_CheckExact(key)) {
         key_size = PyList_GET_SIZE(key);
@@ -1585,7 +1587,15 @@ fam_get_many(FAMObject *self, PyObject *key) {
         PyObject* v = NULL;
         for (Py_ssize_t i = 0; i < key_size; i++) {
             k = PyList_GET_ITEM(key, i); // borrow
-            Py_ssize_t keys_pos = lookup(self, k);
+            keys_pos = lookup(self, k);
+            if (keys_pos < 0) {
+                Py_DECREF(values);
+                if (PyErr_Occurred()) {
+                    return NULL;
+                }
+                PyErr_SetObject(PyExc_KeyError, k);
+                return NULL;
+            }
             v = PyList_GET_ITEM(int_cache, keys_pos);
             Py_INCREF(v); // inc as set will steal
             PyList_SET_ITEM(values, i, v); // steals ref
@@ -1593,7 +1603,36 @@ fam_get_many(FAMObject *self, PyObject *key) {
         return values;
     }
     else if (PyArray_Check(key)) {
-        Py_RETURN_NONE;
+        PyArrayObject* key_array = (PyArrayObject *)key;
+        key_size = PyArray_SIZE(key_array);
+        npy_intp dims[] = {key_size};
+        PyObject *array = PyArray_EMPTY(1, dims, NPY_INT64, 0);
+        if (array == NULL) {
+            return NULL;
+        }
+        npy_int64* b = (npy_int64*)PyArray_DATA((PyArrayObject*)array);
+        PyObject* k;
+        for (Py_ssize_t i = 0; i < key_size; i++) {
+            k = PyArray_ToScalar(PyArray_GETPTR1(key_array, i), key_array);
+            if (k == NULL) {
+                Py_DECREF(array);
+                return NULL;
+            }
+            keys_pos = lookup(self, k);
+            if (keys_pos < 0) {
+                Py_DECREF(array);
+                if (PyErr_Occurred()) {
+                    Py_DECREF(k);
+                    return NULL;
+                }
+                PyErr_SetObject(PyExc_KeyError, k);
+                Py_DECREF(k);
+                return NULL;
+            }
+            Py_DECREF(k);
+            b[i] = (npy_int64)keys_pos;
+        }
+        return array;
     }
 
     PyErr_SetString(PyExc_TypeError, "Must provide a list or array.");
