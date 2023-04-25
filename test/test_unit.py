@@ -94,17 +94,19 @@ def test_fam_constructor_array_int_d():
 
 def test_fam_constructor_array_int_e():
     # https://github.com/static-frame/arraymap/issues/12
-    a1 = np.array((0, 0, 1, 1, 2, 2), dtype=np.int32)
+    a1 = np.array((0, 0, 1, 1, 2, 2), dtype=int)
     a2 = a1[[0, 2, 4]]
     a2.flags.writeable = False
     fam1 = FrozenAutoMap(a2)
     assert list(fam1) == [0, 1, 2]
 
-    d1 = {i: i for i in a2}
+    d1 = {i: int(i) for i in a2}
     fam2 = FrozenAutoMap(d1)
+    assert list(fam2) == [0, 1, 2]
 
     d2 = {0: 0, 3: 1}
     fam3 = FrozenAutoMap(d2)
+    assert list(fam3) == [0, 3]
 
 
 # ------------------------------------------------------------------------------
