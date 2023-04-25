@@ -1586,68 +1586,35 @@ fam_get_many(FAMObject *self, PyObject *args) {
     Py_ssize_t key_size = 0;
     Py_ssize_t keys_pos = -1;
 
-    if (PyList_CheckExact(key) && is_partial) { // given list, return list
+    if (PyList_CheckExact(key)) {
         key_size = PyList_GET_SIZE(key);
-        PyObject* values = PyList_New(0);
-        if (!values) {
-            return NULL;
-        }
-        PyObject* k = NULL;
-        PyObject* v = NULL;
-        for (Py_ssize_t i = 0; i < key_size; i++) {
-            k = PyList_GET_ITEM(key, i); // borrow
-            keys_pos = lookup(self, k);
-            if (keys_pos < 0) {
-                if (PyErr_Occurred()) { // only exit if exception set
+
+        if (is_partial) { // given list, return list
+            PyObject* values = PyList_New(0);
+            if (!values) {
+                return NULL;
+            }
+            PyObject* k = NULL;
+            PyObject* v = NULL;
+            for (Py_ssize_t i = 0; i < key_size; i++) {
+                k = PyList_GET_ITEM(key, i); // borrow
+                keys_pos = lookup(self, k);
+                if (keys_pos < 0) {
+                    if (PyErr_Occurred()) { // only exit if exception set
+                        Py_DECREF(values);
+                        return NULL;
+                    }
+                    continue;
+                }
+                v = PyList_GET_ITEM(int_cache, keys_pos); // borrow
+                if (PyList_Append(values, v)) {
                     Py_DECREF(values);
                     return NULL;
                 }
-                continue;
             }
-            v = PyList_GET_ITEM(int_cache, keys_pos); // borrow
-            if (PyList_Append(values, v)) {
-                Py_DECREF(values);
-                return NULL;
-            }
+            return values; // might empty
         }
-        return values; // might empty
-    }
-    if (PyArray_Check(key) && is_partial) { // given array, return list
-        PyArrayObject* key_array = (PyArrayObject *)key;
-        key_size = PyArray_SIZE(key_array);
-        PyObject* values = PyList_New(0);
-        if (!values) {
-            return NULL;
-        }
-        PyObject* k = NULL;
-        PyObject* v = NULL;
-        for (Py_ssize_t i = 0; i < key_size; i++) {
-            k = PyArray_ToScalar(PyArray_GETPTR1(key_array, i), key_array);
-            if (k == NULL) {
-                Py_DECREF(values);
-                return NULL;
-            }
-            keys_pos = lookup(self, k);
-            Py_DECREF(k);
-            if (keys_pos < 0) {
-                if (PyErr_Occurred()) { // only exit if exception set
-                    Py_DECREF(values);
-                    return NULL;
-                }
-                continue;
-            }
-            v = PyList_GET_ITEM(int_cache, keys_pos); // borrow
-            if (PyList_Append(values, v)) {
-                Py_DECREF(values);
-                return NULL;
-            }
-        }
-        return values;
-    }
-
-    if (PyList_CheckExact(key)) { // given list, return array
-        key_size = PyList_GET_SIZE(key);
-
+        // given list, return array
         npy_intp dims[] = {key_size};
         PyObject *array = PyArray_EMPTY(1, dims, NPY_INT64, 0);
         if (array == NULL) {
@@ -1671,7 +1638,41 @@ fam_get_many(FAMObject *self, PyObject *args) {
         }
         return array;
     }
-    if (PyArray_Check(key)) { // given array, return array
+
+    if (PyArray_Check(key)) {
+        if (is_partial) { // given array, return list
+            PyArrayObject* key_array = (PyArrayObject *)key;
+            key_size = PyArray_SIZE(key_array);
+            PyObject* values = PyList_New(0);
+            if (!values) {
+                return NULL;
+            }
+            PyObject* k = NULL;
+            PyObject* v = NULL;
+            for (Py_ssize_t i = 0; i < key_size; i++) {
+                k = PyArray_ToScalar(PyArray_GETPTR1(key_array, i), key_array);
+                if (k == NULL) {
+                    Py_DECREF(values);
+                    return NULL;
+                }
+                keys_pos = lookup(self, k);
+                Py_DECREF(k);
+                if (keys_pos < 0) {
+                    if (PyErr_Occurred()) { // only exit if exception set
+                        Py_DECREF(values);
+                        return NULL;
+                    }
+                    continue;
+                }
+                v = PyList_GET_ITEM(int_cache, keys_pos); // borrow
+                if (PyList_Append(values, v)) {
+                    Py_DECREF(values);
+                    return NULL;
+                }
+            }
+            return values;
+        }
+        // given array, return array
         PyArrayObject* key_array = (PyArrayObject *)key;
         key_size = PyArray_SIZE(key_array);
         npy_intp dims[] = {key_size};
