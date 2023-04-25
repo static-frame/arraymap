@@ -111,10 +111,6 @@ class GetAnyArray(MapProcessor):
         assert len(post) == len(self.fama) // 2
 
 
-
-
-
-
 # -------------------------------------------------------------------------------
 INT_START = 500  # avoid cached ints starting at 256
 
@@ -256,12 +252,11 @@ CLS_FF = (
     FFFloat64,
     FFString,
     FFBytes,
-    # FFObject,
 )
 FF_ORDER = [f.NAME for f in sorted(CLS_FF, key=lambda ff: ff.SORT)]
 
 # -------------------------------------------------------------------------------
-NUMBER = 20
+NUMBER = 5
 
 from itertools import product
 
@@ -386,12 +381,10 @@ if __name__ == "__main__":
         GetAllListObj,
         GetAllListScalar,
         GetAllArray,
-
         ListCompAnyScalar,
         GetAnyListObj,
         GetAnyListScalar,
         GetAnyArray,
-
     )
 
     run_test(cls_instantiate, "get-all-any")

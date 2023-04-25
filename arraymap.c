@@ -937,8 +937,7 @@ lookup_int(FAMObject *self, PyObject* key) {
     else {
         return -1;
     }
-    Py_hash_t hash = int_to_hash(v);
-    return lookup_hash_int(self, v, hash);
+    return lookup_hash_int(self, v, int_to_hash(v));
 }
 
 
@@ -1037,8 +1036,7 @@ lookup_uint(FAMObject *self, PyObject* key) {
     else {
         return -1;
     }
-    Py_hash_t hash = uint_to_hash(v);
-    return lookup_hash_uint(self, v, hash);
+    return lookup_hash_uint(self, v, uint_to_hash(v));
 }
 
 
@@ -1102,8 +1100,7 @@ lookup_double(FAMObject *self, PyObject* key) {
         else {
             return -1;
         }
-        Py_hash_t hash = double_to_hash(v);
-        return lookup_hash_double(self, v, hash);
+        return lookup_hash_double(self, v, double_to_hash(v));
 }
 
 
@@ -1569,6 +1566,31 @@ get(FAMObject *self, PyObject *key, PyObject *missing) {
     return index;
 }
 
+// Depends on key_size, key_array, keys_pos, i, k, b
+# define GET_ALL_SCALARS(npy_type, lookup_func, hash_func, to_obj_func)    \
+npy_type v;                                                    \
+for (; i < key_size; i++) {\
+    v = *(npy_type*)PyArray_GETPTR1(key_array, i);\
+    keys_pos = lookup_func(self, v, hash_func(v));\
+    if (keys_pos < 0) {\
+        Py_DECREF(array);\
+        if (PyErr_Occurred()) {\
+            return NULL;\
+        }\
+        k = to_obj_func(v);\
+        if (k == NULL) {\
+            return NULL;\
+        }\
+        PyErr_SetObject(PyExc_KeyError, k);\
+        Py_DECREF(k);\
+        return NULL;\
+    }\
+    b[i] = (npy_int64)keys_pos;\
+}\
+
+
+
+
 // Given a list or array of keys, return an array of the lookup-up integer values. If any unmatched keys are found, a KeyError will raise. An immutable array is always returned.
 static PyObject *
 fam_get_all(FAMObject *self, PyObject *key) {
@@ -1604,33 +1626,51 @@ fam_get_all(FAMObject *self, PyObject *key) {
     else if (PyArray_Check(key)) {
         PyArrayObject* key_array = (PyArrayObject *)key;
         key_size = PyArray_SIZE(key_array);
+        int array_t = PyArray_TYPE(key_array);
 
         npy_intp dims[] = {key_size};
         array = PyArray_EMPTY(1, dims, NPY_INT64, 0);
         if (array == NULL) {
             return NULL;
         }
+        Py_ssize_t i = 0;
         npy_int64* b = (npy_int64*)PyArray_DATA((PyArrayObject*)array);
 
-        for (Py_ssize_t i = 0; i < key_size; i++) {
-            k = PyArray_ToScalar(PyArray_GETPTR1(key_array, i), key_array);
-            if (k == NULL) {
-                Py_DECREF(array);
-                return NULL;
+        switch (array_t) {
+            case NPY_INT64: {
+                GET_ALL_SCALARS(npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong);
+                break;
             }
-            keys_pos = lookup(self, k);
-            if (keys_pos < 0) {
-                Py_DECREF(array);
-                if (PyErr_Occurred()) {
+            case NPY_UINT64: {
+                GET_ALL_SCALARS(npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong);
+                break;
+            }
+            case NPY_FLOAT64: {
+                GET_ALL_SCALARS(npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble);
+                break;
+            }
+            default: { // use Scalars
+                for (; i < key_size; i++) {
+                    k = PyArray_ToScalar(PyArray_GETPTR1(key_array, i), key_array);
+                    if (k == NULL) {
+                        Py_DECREF(array);
+                        return NULL;
+                    }
+                    keys_pos = lookup(self, k);
+                    if (keys_pos < 0) {
+                        Py_DECREF(array);
+                        if (PyErr_Occurred()) {
+                            Py_DECREF(k);
+                            return NULL;
+                        }
+                        PyErr_SetObject(PyExc_KeyError, k);
+                        Py_DECREF(k);
+                        return NULL;
+                    }
                     Py_DECREF(k);
-                    return NULL;
+                    b[i] = (npy_int64)keys_pos;
                 }
-                PyErr_SetObject(PyExc_KeyError, k);
-                Py_DECREF(k);
-                return NULL;
             }
-            Py_DECREF(k);
-            b[i] = (npy_int64)keys_pos;
         }
     }
     else {
