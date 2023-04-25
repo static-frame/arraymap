@@ -1569,52 +1569,19 @@ get(FAMObject *self, PyObject *key, PyObject *missing) {
     return index;
 }
 
-
+// Given a list or array of keys, return an array of the lookup-up integer values. If any unmatched keys are found, a KeyError will raise. An immutable array is always returned.
 static PyObject *
-fam_get_many(FAMObject *self, PyObject *args) {
-
-    PyObject *key, *partial = NULL;
-    if (!PyArg_UnpackTuple(args,
-            Py_TYPE(self)->tp_name,
-            2,
-            2,
-            &key,
-            &partial)) {
-        return NULL;
-    }
-    int is_partial = PyObject_IsTrue(partial);
+fam_get_all(FAMObject *self, PyObject *key) {
     Py_ssize_t key_size = 0;
     Py_ssize_t keys_pos = -1;
     PyObject* k = NULL;
+    PyObject *array = NULL;
 
     if (PyList_CheckExact(key)) {
         key_size = PyList_GET_SIZE(key);
 
-        if (is_partial) { // given list, return list
-            PyObject* values = PyList_New(0);
-            if (!values) {
-                return NULL;
-            }
-            for (Py_ssize_t i = 0; i < key_size; i++) {
-                k = PyList_GET_ITEM(key, i); // borrow
-                keys_pos = lookup(self, k);
-                if (keys_pos < 0) {
-                    if (PyErr_Occurred()) { // only exit if exception set
-                        Py_DECREF(values);
-                        return NULL;
-                    }
-                    continue;
-                }
-                if (PyList_Append(values, PyList_GET_ITEM(int_cache, keys_pos))) {
-                    Py_DECREF(values);
-                    return NULL;
-                }
-            }
-            return values; // might be empty
-        }
-        // given list, return array
         npy_intp dims[] = {key_size};
-        PyObject *array = PyArray_EMPTY(1, dims, NPY_INT64, 0);
+        array = PyArray_EMPTY(1, dims, NPY_INT64, 0);
         if (array == NULL) {
             return NULL;
         }
@@ -1633,47 +1600,18 @@ fam_get_many(FAMObject *self, PyObject *args) {
             }
             b[i] = (npy_int64)keys_pos;
         }
-        return array;
     }
-
-    if (PyArray_Check(key)) {
+    else if (PyArray_Check(key)) {
         PyArrayObject* key_array = (PyArrayObject *)key;
         key_size = PyArray_SIZE(key_array);
 
-        if (is_partial) { // given array, return list
-            PyObject* values = PyList_New(0);
-            if (!values) {
-                return NULL;
-            }
-            for (Py_ssize_t i = 0; i < key_size; i++) {
-                k = PyArray_ToScalar(PyArray_GETPTR1(key_array, i), key_array);
-                if (k == NULL) {
-                    Py_DECREF(values);
-                    return NULL;
-                }
-                keys_pos = lookup(self, k);
-                Py_DECREF(k);
-                if (keys_pos < 0) {
-                    if (PyErr_Occurred()) { // only exit if exception set
-                        Py_DECREF(values);
-                        return NULL;
-                    }
-                    continue;
-                }
-                if (PyList_Append(values, PyList_GET_ITEM(int_cache, keys_pos))) {
-                    Py_DECREF(values);
-                    return NULL;
-                }
-            }
-            return values;
-        }
-        // given array, return array
         npy_intp dims[] = {key_size};
-        PyObject *array = PyArray_EMPTY(1, dims, NPY_INT64, 0);
+        array = PyArray_EMPTY(1, dims, NPY_INT64, 0);
         if (array == NULL) {
             return NULL;
         }
         npy_int64* b = (npy_int64*)PyArray_DATA((PyArrayObject*)array);
+
         for (Py_ssize_t i = 0; i < key_size; i++) {
             k = PyArray_ToScalar(PyArray_GETPTR1(key_array, i), key_array);
             if (k == NULL) {
@@ -1694,12 +1632,79 @@ fam_get_many(FAMObject *self, PyObject *args) {
             Py_DECREF(k);
             b[i] = (npy_int64)keys_pos;
         }
-        // TODO: make array immutable
-        return array;
     }
-    // key was not an array or list
-    PyErr_SetString(PyExc_TypeError, "Must provide a list or array.");
-    return NULL;
+    else {
+        PyErr_SetString(PyExc_TypeError, "Must provide a list or array.");
+        return NULL;
+    }
+    PyArray_CLEARFLAGS((PyArrayObject *)array, NPY_ARRAY_WRITEABLE);
+    return array;
+
+}
+
+// Given a list or array of keys, return a list of the lookup-up integer values. If any unmatched keys are found, they are ignored. A list is always returned.
+static PyObject *
+fam_get_any(FAMObject *self, PyObject *key) {
+    Py_ssize_t key_size = 0;
+    Py_ssize_t keys_pos = -1;
+    PyObject* k = NULL;
+    PyObject* values = NULL;
+
+    if (PyList_CheckExact(key)) {
+        key_size = PyList_GET_SIZE(key);
+        values = PyList_New(0);
+        if (!values) {
+            return NULL;
+        }
+        for (Py_ssize_t i = 0; i < key_size; i++) {
+            k = PyList_GET_ITEM(key, i); // borrow
+            keys_pos = lookup(self, k);
+            if (keys_pos < 0) {
+                if (PyErr_Occurred()) { // only exit if exception set
+                    Py_DECREF(values);
+                    return NULL;
+                }
+                continue;
+            }
+            if (PyList_Append(values, PyList_GET_ITEM(int_cache, keys_pos))) {
+                Py_DECREF(values);
+                return NULL;
+            }
+        }
+    }
+    else if (PyArray_Check(key)) {
+        PyArrayObject* key_array = (PyArrayObject *)key;
+        key_size = PyArray_SIZE(key_array);
+        values = PyList_New(0);
+        if (!values) {
+            return NULL;
+        }
+        for (Py_ssize_t i = 0; i < key_size; i++) {
+            k = PyArray_ToScalar(PyArray_GETPTR1(key_array, i), key_array);
+            if (k == NULL) {
+                Py_DECREF(values);
+                return NULL;
+            }
+            keys_pos = lookup(self, k);
+            Py_DECREF(k);
+            if (keys_pos < 0) {
+                if (PyErr_Occurred()) { // only exit if exception set
+                    Py_DECREF(values);
+                    return NULL;
+                }
+                continue; // do not raise
+            }
+            if (PyList_Append(values, PyList_GET_ITEM(int_cache, keys_pos))) {
+                Py_DECREF(values);
+                return NULL;
+            }
+        }
+    }
+    else {
+        PyErr_SetString(PyExc_TypeError, "Must provide a list or array.");
+        return NULL;
+    }
+    return values; // might be empty
 }
 
 
@@ -2141,7 +2146,8 @@ static PyMethodDef fam_methods[] = {
     {"items", (PyCFunction) fam_items, METH_NOARGS, NULL},
     {"keys", (PyCFunction) fam_keys, METH_NOARGS, NULL},
     {"values", (PyCFunction) fam_values, METH_NOARGS, NULL},
-    {"get_many", (PyCFunction) fam_get_many, METH_VARARGS, NULL},
+    {"get_all", (PyCFunction) fam_get_all, METH_O, NULL},
+    {"get_any", (PyCFunction) fam_get_any, METH_O, NULL},
     {NULL},
 };
 
