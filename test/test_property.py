@@ -240,7 +240,12 @@ def test_am_array_get_all(keys: Keys) -> None:
     post1 = fam.get_all(keys_list)
     assert list(post1) == list(fam.values())
 
-    post2 = fam.get_all(keys)
+    try:
+        post2 = fam.get_all(keys)
+    except:
+        import ipdb
+
+        ipdb.set_trace()
     assert list(post2) == list(fam.values())
 
 

@@ -104,6 +104,35 @@ at_to_kat(int array_t) {
 }
 
 
+int
+kat_is_kind(KeysArrayType kat, char kind) {
+    switch (kat) {
+        case KAT_INT64:
+        case KAT_INT32:
+        case KAT_INT16:
+        case KAT_INT8:
+            return kind == 'i';
+
+        case KAT_UINT64:
+        case KAT_UINT32:
+        case KAT_UINT16:
+        case KAT_UINT8:
+            return kind == 'u';
+
+        case KAT_FLOAT64:
+        case KAT_FLOAT32:
+        case KAT_FLOAT16:
+            return kind == 'f';
+
+        // case KAT_UNICODE:
+        //     return kind == 'U';
+        // case KAT_STRING:
+        //     return kind == 'S';
+        default:
+            return 0;
+    }
+}
+
 typedef struct FAMObject{
     PyObject_VAR_HEAD
     Py_ssize_t table_size;
@@ -1567,10 +1596,10 @@ get(FAMObject *self, PyObject *key, PyObject *missing) {
 }
 
 // Depends on key_size, key_array, keys_pos, i, k, b
-# define GET_ALL_SCALARS(npy_type, lookup_func, hash_func, to_obj_func)    \
-npy_type v;                                                    \
+# define GET_ALL_SCALARS(npy_type_src, npy_type_dst, lookup_func, hash_func, to_obj_func)    \
+npy_type_dst v;                                                    \
 for (; i < key_size; i++) {\
-    v = *(npy_type*)PyArray_GETPTR1(key_array, i);\
+    v = *(npy_type_src*)PyArray_GETPTR1(key_array, i);\
     keys_pos = lookup_func(self, v, hash_func(v));\
     if (keys_pos < 0) {\
         Py_DECREF(array);\
@@ -1626,7 +1655,10 @@ fam_get_all(FAMObject *self, PyObject *key) {
     else if (PyArray_Check(key)) {
         PyArrayObject* key_array = (PyArrayObject *)key;
         key_size = PyArray_SIZE(key_array);
+
+        // if key is an np array of the same kind as this FAMs keys, we can do optimized lookups; otherwise, we have to go through scalar to do full branching and coercion into lookup
         int array_t = PyArray_TYPE(key_array);
+        char array_kind = PyArray_DESCR(key_array)->kind;
 
         npy_intp dims[] = {key_size};
         array = PyArray_EMPTY(1, dims, NPY_INT64, 0);
@@ -1636,40 +1668,46 @@ fam_get_all(FAMObject *self, PyObject *key) {
         Py_ssize_t i = 0;
         npy_int64* b = (npy_int64*)PyArray_DATA((PyArrayObject*)array);
 
-        switch (array_t) {
-            case NPY_INT64: {
-                GET_ALL_SCALARS(npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong);
-                break;
+        if (kat_is_kind(self->keys_array_type, array_kind)) {
+            switch (array_t) {
+                case NPY_INT64: {
+                    GET_ALL_SCALARS(npy_int64, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong);
+                    break;
+                }
+                case NPY_INT32: {
+                    GET_ALL_SCALARS(npy_int32, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong);
+                    break;
+                }
+                case NPY_UINT64: {
+                    GET_ALL_SCALARS(npy_uint64, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong);
+                    break;
+                }
+                case NPY_FLOAT64: {
+                    GET_ALL_SCALARS(npy_double, npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble);
+                    break;
+                }
             }
-            case NPY_UINT64: {
-                GET_ALL_SCALARS(npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong);
-                break;
-            }
-            case NPY_FLOAT64: {
-                GET_ALL_SCALARS(npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble);
-                break;
-            }
-            default: { // use Scalars
-                for (; i < key_size; i++) {
-                    k = PyArray_ToScalar(PyArray_GETPTR1(key_array, i), key_array);
-                    if (k == NULL) {
-                        Py_DECREF(array);
-                        return NULL;
-                    }
-                    keys_pos = lookup(self, k);
-                    if (keys_pos < 0) {
-                        Py_DECREF(array);
-                        if (PyErr_Occurred()) {
-                            Py_DECREF(k);
-                            return NULL;
-                        }
-                        PyErr_SetObject(PyExc_KeyError, k);
+        }
+        else {
+            for (; i < key_size; i++) {
+                k = PyArray_ToScalar(PyArray_GETPTR1(key_array, i), key_array);
+                if (k == NULL) {
+                    Py_DECREF(array);
+                    return NULL;
+                }
+                keys_pos = lookup(self, k);
+                if (keys_pos < 0) {
+                    Py_DECREF(array);
+                    if (PyErr_Occurred()) {
                         Py_DECREF(k);
                         return NULL;
                     }
+                    PyErr_SetObject(PyExc_KeyError, k);
                     Py_DECREF(k);
-                    b[i] = (npy_int64)keys_pos;
+                    return NULL;
                 }
+                Py_DECREF(k);
+                b[i] = (npy_int64)keys_pos;
             }
         }
     }
