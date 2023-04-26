@@ -2162,55 +2162,57 @@ fam_new(PyTypeObject *cls, PyObject *args, PyObject *kwargs)
 
 
 // This macro can be used with integer and floating point NumPy types, given an `npy_type` and a specialized `insert_func`. Uses context of `fam_init` to get `fam`, `contiguous`, `a`, `keys_size`, and `i`. An optional `post_deref` function can be supplied to transform extracted values before calling the appropriate insert function.
-# define INSERT_SCALARS(npy_type, insert_func, post_deref)    \
-if (contiguous) {                                             \
-    npy_type* b = (npy_type*)PyArray_DATA(a);                 \
-    npy_type* b_end = b + keys_size;                          \
-    while (b < b_end) {                                       \
-        if (insert_func(fam, post_deref(*b), i, -1)) {        \
-            goto error;                                       \
-        }                                                     \
-        b++;                                                  \
-        i++;                                                  \
-    }                                                         \
-}                                                             \
-else {                                                        \
-    for (; i < keys_size; i++) {                              \
-        if (insert_func(fam,                                  \
-                post_deref(*(npy_type*)PyArray_GETPTR1(a, i)),\
-                i,                                            \
-                -1)) {                                        \
-            goto error;                                       \
-        }                                                     \
-    }                                                         \
-}                                                             \
-
+# define INSERT_SCALARS(npy_type, insert_func, post_deref)        \
+{                                                                 \
+    if (contiguous) {                                             \
+        npy_type* b = (npy_type*)PyArray_DATA(a);                 \
+        npy_type* b_end = b + keys_size;                          \
+        while (b < b_end) {                                       \
+            if (insert_func(fam, post_deref(*b), i, -1)) {        \
+                goto error;                                       \
+            }                                                     \
+            b++;                                                  \
+            i++;                                                  \
+        }                                                         \
+    }                                                             \
+    else {                                                        \
+        for (; i < keys_size; i++) {                              \
+            if (insert_func(fam,                                  \
+                    post_deref(*(npy_type*)PyArray_GETPTR1(a, i)),\
+                    i,                                            \
+                    -1)) {                                        \
+                goto error;                                       \
+            }                                                     \
+        }                                                         \
+    }                                                             \
+}                                                                 \
 
 // This macro is for inserting flexible-sized types, Unicode (Py_UCS4) or strings (char). Uses context of `fam_init`.
-# define INSERT_FLEXIBLE(char_type, insert_func, get_end_func) \
-char_type* p = NULL;                                           \
-if (contiguous) {                                              \
-    char_type *b = (char_type*)PyArray_DATA(a);                \
-    char_type *b_end = b + keys_size * dt_size;                \
-    while (b < b_end) {                                        \
-        p = get_end_func(b, dt_size);                          \
-        if (insert_func(fam, b, p-b, i, -1)) {                 \
-            goto error;                                        \
-        }                                                      \
-        b += dt_size;                                          \
-        i++;                                                   \
-    }                                                          \
-}                                                              \
-else {                                                         \
-    for (; i < keys_size; i++) {                               \
-        char_type* v = (char_type*)PyArray_GETPTR1(a, i);      \
-        p = get_end_func(v, dt_size);                          \
-        if (insert_func(fam, v, p-v, i, -1)) {                 \
-            goto error;                                        \
-        }                                                      \
-    }                                                          \
-}                                                              \
-
+# define INSERT_FLEXIBLE(char_type, insert_func, get_end_func)     \
+{                                                                  \
+    char_type* p = NULL;                                           \
+    if (contiguous) {                                              \
+        char_type *b = (char_type*)PyArray_DATA(a);                \
+        char_type *b_end = b + keys_size * dt_size;                \
+        while (b < b_end) {                                        \
+            p = get_end_func(b, dt_size);                          \
+            if (insert_func(fam, b, p-b, i, -1)) {                 \
+                goto error;                                        \
+            }                                                      \
+            b += dt_size;                                          \
+            i++;                                                   \
+        }                                                          \
+    }                                                              \
+    else {                                                         \
+        for (; i < keys_size; i++) {                               \
+            char_type* v = (char_type*)PyArray_GETPTR1(a, i);      \
+            p = get_end_func(v, dt_size);                          \
+            if (insert_func(fam, v, p-v, i, -1)) {                 \
+                goto error;                                        \
+            }                                                      \
+        }                                                          \
+    }                                                              \
+}                                                                  \
 
 // Initialize an allocated FAMObject. Returns 0 on success, -1 on error.
 int
