@@ -44,6 +44,14 @@ typedef struct TableElement{
 
 const static size_t UCS4_SIZE = sizeof(Py_UCS4);
 
+
+// Partial, two-argument version of PyUnicode_FromKindAndData for consistent templating with bytes version.
+static inline PyObject*
+PyUnicode_FromUCS4AndData(const void *buffer, Py_ssize_t size) {
+    return PyUnicode_FromKindAndData(PyUnicode_4BYTE_KIND, buffer, size);
+}
+
+
 typedef enum KeysArrayType{
     KAT_LIST = 0, // must be falsy
 
@@ -124,10 +132,11 @@ kat_is_kind(KeysArrayType kat, char kind) {
         case KAT_FLOAT16:
             return kind == 'f';
 
-        // case KAT_UNICODE:
-        //     return kind == 'U';
-        // case KAT_STRING:
-        //     return kind == 'S';
+        case KAT_UNICODE:
+            return kind == 'U';
+        case KAT_STRING:
+            return kind == 'S';
+
         default:
             return 0;
     }
@@ -1643,6 +1652,31 @@ for (; i < key_size; i++) {                                        \
 }                                                                  \
 
 
+# define GET_ALL_FLEXIBLE(char_type, get_end_func, lookup_func, hash_func, to_obj_func) \
+char_type* v;                                                             \
+Py_ssize_t dt_size = PyArray_DESCR(key_array)->elsize / sizeof(char_type);\
+Py_ssize_t k_size;                                                        \
+for (; i < key_size; i++) {                                               \
+    v = (char_type*)PyArray_GETPTR1(key_array, i);                        \
+    k_size = get_end_func(v, dt_size) - v;                                \
+    Py_hash_t hash = hash_func(v, k_size);                                \
+    table_pos = lookup_func(self, v, k_size, hash);                       \
+    if (table_pos < 0 || (self->table[table_pos].hash == -1)) {           \
+        Py_DECREF(array);                                                 \
+        if (PyErr_Occurred()) {                                           \
+            return NULL;                                                  \
+        }                                                                 \
+        k = to_obj_func(v, k_size);                                       \
+        if (k == NULL) {                                                  \
+            return NULL;                                                  \
+        }                                                                 \
+        PyErr_SetObject(PyExc_KeyError, k);                               \
+        Py_DECREF(k);                                                     \
+        return NULL;                                                      \
+    }                                                                     \
+    b[i] = (npy_int64)self->table[table_pos].keys_pos;                    \
+}                                                                         \
+
 // Given a list or array of keys, return an array of the lookup-up integer values. If any unmatched keys are found, a KeyError will raise. An immutable array is always returned.
 static PyObject *
 fam_get_all(FAMObject *self, PyObject *key) {
@@ -1744,57 +1778,11 @@ fam_get_all(FAMObject *self, PyObject *key) {
                     break;
                 }
                 case NPY_UNICODE: {
-                    Py_UCS4* v;
-                    Py_ssize_t dt_size = PyArray_DESCR(key_array)->elsize / UCS4_SIZE;
-                    Py_ssize_t k_size;
-                    for (; i < key_size; i++) {
-                        v = (Py_UCS4*)PyArray_GETPTR1(key_array, i);
-                        k_size = ucs4_get_end_p(v, dt_size) - v;
-                        Py_hash_t hash = unicode_to_hash(v, k_size);
-                        table_pos = lookup_hash_unicode(self, v, k_size, hash);
-                        if (table_pos < 0 || (self->table[table_pos].hash == -1)) {
-                            Py_DECREF(array);
-                            if (PyErr_Occurred()) {
-                                return NULL;
-                            }
-                            k = PyUnicode_FromKindAndData(PyUnicode_4BYTE_KIND, v, k_size);
-                            if (k == NULL) {
-                                return NULL;
-                            }
-                            PyErr_SetObject(PyExc_KeyError, k);
-                            Py_DECREF(k);
-                            return NULL;
-                        }
-                        b[i] = (npy_int64)self->table[table_pos].keys_pos;
-                    }
+                    GET_ALL_FLEXIBLE(Py_UCS4, ucs4_get_end_p, lookup_hash_unicode, unicode_to_hash, PyUnicode_FromUCS4AndData);
                     break;
                 }
                 case NPY_STRING: {
-                    char* v;
-                    Py_ssize_t dt_size = PyArray_DESCR(key_array)->elsize / 1;
-                    Py_ssize_t k_size;
-                    for (; i < key_size; i++) {
-                        v = (char*)PyArray_GETPTR1(key_array, i);
-                        k_size = char_get_end_p(v, dt_size) - v;
-                        Py_hash_t hash = string_to_hash(v, k_size);
-                        table_pos = lookup_hash_string(self, v, k_size, hash);
-                        // DEBUG_MSG_OBJ("k_size", PyLong_FromLongLong(k_size));
-                        // DEBUG_MSG_OBJ("table_pos", PyLong_FromLongLong(table_pos));
-                        if (table_pos < 0 || (self->table[table_pos].hash == -1)) {
-                            Py_DECREF(array);
-                            if (PyErr_Occurred()) {
-                                return NULL;
-                            }
-                            k = PyBytes_FromStringAndSize(v, k_size);
-                            if (k == NULL) {
-                                return NULL;
-                            }
-                            PyErr_SetObject(PyExc_KeyError, k);
-                            Py_DECREF(k);
-                            return NULL;
-                        }
-                        b[i] = (npy_int64)self->table[table_pos].keys_pos;
-                    }
+                    GET_ALL_FLEXIBLE(char, char_get_end_p, lookup_hash_string, string_to_hash, PyBytes_FromStringAndSize);
                     break;
                 }
             }
@@ -1851,6 +1839,30 @@ for (; i < key_size; i++) {                                            \
         return NULL;                                                   \
     }                                                                  \
 }                                                                      \
+
+
+# define GET_ANY_FLEXIBLE(char_type, get_end_func, lookup_func, hash_func)\
+char_type* v;                                                             \
+Py_ssize_t dt_size = PyArray_DESCR(key_array)->elsize / sizeof(char_type);\
+Py_ssize_t k_size;                                                        \
+for (; i < key_size; i++) {                                               \
+    v = (char_type*)PyArray_GETPTR1(key_array, i);                        \
+    k_size = get_end_func(v, dt_size) - v;                                \
+    Py_hash_t hash = hash_func(v, k_size);                                \
+    table_pos = lookup_func(self, v, k_size, hash);                       \
+    if (table_pos < 0 || (self->table[table_pos].hash == -1)) {           \
+        if (PyErr_Occurred()) {                                           \
+            Py_DECREF(values);                                            \
+            return NULL;                                                  \
+        }                                                                 \
+        continue;                                                         \
+    }                                                                     \
+    keys_pos = self->table[table_pos].keys_pos;                           \
+    if (PyList_Append(values, PyList_GET_ITEM(int_cache, keys_pos))) {    \
+        Py_DECREF(values);                                                \
+        return NULL;                                                      \
+    }                                                                     \
+}                                                                         \
 
 
 // Given a list or array of keys, return a list of the lookup-up integer values. If any unmatched keys are found, they are ignored. A list is always returned.
@@ -1950,6 +1962,14 @@ fam_get_any(FAMObject *self, PyObject *key) {
                 }
                 case NPY_FLOAT16: {
                     GET_ANY_SCALARS(npy_half, npy_double, lookup_hash_double, double_to_hash, npy_half_to_double);
+                    break;
+                }
+                case NPY_UNICODE: {
+                    GET_ANY_FLEXIBLE(Py_UCS4, ucs4_get_end_p, lookup_hash_unicode, unicode_to_hash);
+                    break;
+                }
+                case NPY_STRING: {
+                    GET_ANY_FLEXIBLE(char, char_get_end_p, lookup_hash_string, string_to_hash);
                     break;
                 }
             }
