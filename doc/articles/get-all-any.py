@@ -340,6 +340,7 @@ def plot_performance(frame, suffix: str = ""):
         hspace=0.2,
     )
     # plt.rcParams.update({'font.size': 22})
+    print(fp)
     plt.savefig(fp, dpi=300)
 
     if sys.platform.startswith("linux"):

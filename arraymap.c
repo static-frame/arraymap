@@ -1631,51 +1631,53 @@ get(FAMObject *self, PyObject *key, PyObject *missing) {
 
 // Give an array of the same kind as KAT, lookup and load all keys_pos. Depends on self, key_size, key_array, table_pos, i, k, b
 # define GET_ALL_SCALARS(npy_type_src, npy_type_dst, lookup_func, hash_func, to_obj_func, post_deref) \
-npy_type_dst v;                                                    \
-for (; i < key_size; i++) {                                        \
-    v = post_deref(*(npy_type_src*)PyArray_GETPTR1(key_array, i)); \
-    table_pos = lookup_func(self, v, hash_func(v));                \
-    if (table_pos < 0 || (self->table[table_pos].hash == -1)) {    \
-        Py_DECREF(array);                                          \
-        if (PyErr_Occurred()) {                                    \
-            return NULL;                                           \
-        }                                                          \
-        k = to_obj_func(v);                                        \
-        if (k == NULL) {                                           \
-            return NULL;                                           \
-        }                                                          \
-        PyErr_SetObject(PyExc_KeyError, k);                        \
-        Py_DECREF(k);                                              \
-        return NULL;                                               \
-    }                                                              \
-    b[i] = (npy_int64)self->table[table_pos].keys_pos;             \
-}                                                                  \
-
+{                                                                      \
+    npy_type_dst v;                                                    \
+    for (; i < key_size; i++) {                                        \
+        v = post_deref(*(npy_type_src*)PyArray_GETPTR1(key_array, i)); \
+        table_pos = lookup_func(self, v, hash_func(v));                \
+        if (table_pos < 0 || (self->table[table_pos].hash == -1)) {    \
+            Py_DECREF(array);                                          \
+            if (PyErr_Occurred()) {                                    \
+                return NULL;                                           \
+            }                                                          \
+            k = to_obj_func(v);                                        \
+            if (k == NULL) {                                           \
+                return NULL;                                           \
+            }                                                          \
+            PyErr_SetObject(PyExc_KeyError, k);                        \
+            Py_DECREF(k);                                              \
+            return NULL;                                               \
+        }                                                              \
+        b[i] = (npy_int64)self->table[table_pos].keys_pos;             \
+    }                                                                  \
+}                                                                      \
 
 # define GET_ALL_FLEXIBLE(char_type, get_end_func, lookup_func, hash_func, to_obj_func) \
-char_type* v;                                                             \
-Py_ssize_t dt_size = PyArray_DESCR(key_array)->elsize / sizeof(char_type);\
-Py_ssize_t k_size;                                                        \
-for (; i < key_size; i++) {                                               \
-    v = (char_type*)PyArray_GETPTR1(key_array, i);                        \
-    k_size = get_end_func(v, dt_size) - v;                                \
-    Py_hash_t hash = hash_func(v, k_size);                                \
-    table_pos = lookup_func(self, v, k_size, hash);                       \
-    if (table_pos < 0 || (self->table[table_pos].hash == -1)) {           \
-        Py_DECREF(array);                                                 \
-        if (PyErr_Occurred()) {                                           \
-            return NULL;                                                  \
-        }                                                                 \
-        k = to_obj_func(v, k_size);                                       \
-        if (k == NULL) {                                                  \
-            return NULL;                                                  \
-        }                                                                 \
-        PyErr_SetObject(PyExc_KeyError, k);                               \
-        Py_DECREF(k);                                                     \
-        return NULL;                                                      \
-    }                                                                     \
-    b[i] = (npy_int64)self->table[table_pos].keys_pos;                    \
-}                                                                         \
+{                                                                             \
+    char_type* v;                                                             \
+    Py_ssize_t dt_size = PyArray_DESCR(key_array)->elsize / sizeof(char_type);\
+    Py_ssize_t k_size;                                                        \
+    for (; i < key_size; i++) {                                               \
+        v = (char_type*)PyArray_GETPTR1(key_array, i);                        \
+        k_size = get_end_func(v, dt_size) - v;                                \
+        table_pos = lookup_func(self, v, k_size, hash_func(v, k_size));       \
+        if (table_pos < 0 || (self->table[table_pos].hash == -1)) {           \
+            Py_DECREF(array);                                                 \
+            if (PyErr_Occurred()) {                                           \
+                return NULL;                                                  \
+            }                                                                 \
+            k = to_obj_func(v, k_size);                                       \
+            if (k == NULL) {                                                  \
+                return NULL;                                                  \
+            }                                                                 \
+            PyErr_SetObject(PyExc_KeyError, k);                               \
+            Py_DECREF(k);                                                     \
+            return NULL;                                                      \
+        }                                                                     \
+        b[i] = (npy_int64)self->table[table_pos].keys_pos;                    \
+    }                                                                         \
+}                                                                             \
 
 // Given a list or array of keys, return an array of the lookup-up integer values. If any unmatched keys are found, a KeyError will raise. An immutable array is always returned.
 static PyObject *
@@ -1731,60 +1733,45 @@ fam_get_all(FAMObject *self, PyObject *key) {
         if (kat_is_kind(self->keys_array_type, PyArray_DESCR(key_array)->kind)) {
             Py_ssize_t table_pos;
             switch (key_array_t) {
-                case NPY_INT64: {
+                case NPY_INT64:
                     GET_ALL_SCALARS(npy_int64, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
                     break;
-                }
-                case NPY_INT32: {
+                case NPY_INT32:
                     GET_ALL_SCALARS(npy_int32, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
                     break;
-                }
-                case NPY_INT16: {
+                case NPY_INT16:
                     GET_ALL_SCALARS(npy_int16, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
                     break;
-                }
-                case NPY_INT8: {
+                case NPY_INT8:
                     GET_ALL_SCALARS(npy_int8, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
                     break;
-                }
-
-                case NPY_UINT64: {
+                case NPY_UINT64:
                     GET_ALL_SCALARS(npy_uint64, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong,);
                     break;
-                }
-                case NPY_UINT32: {
+                case NPY_UINT32:
                     GET_ALL_SCALARS(npy_uint32, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong,);
                     break;
-                }
-                case NPY_UINT16: {
+                case NPY_UINT16:
                     GET_ALL_SCALARS(npy_uint16, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong,);
                     break;
-                }
-                case NPY_UINT8: {
+                case NPY_UINT8:
                     GET_ALL_SCALARS(npy_uint8, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong,);
                     break;
-                }
-
-                case NPY_FLOAT64: {
+                case NPY_FLOAT64:
                     GET_ALL_SCALARS(npy_double, npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble,);
                     break;
-                }
-                case NPY_FLOAT32: {
+                case NPY_FLOAT32:
                     GET_ALL_SCALARS(npy_float, npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble,);
                     break;
-                }
-                case NPY_FLOAT16: {
+                case NPY_FLOAT16:
                     GET_ALL_SCALARS(npy_half, npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble, npy_half_to_double);
                     break;
-                }
-                case NPY_UNICODE: {
+                case NPY_UNICODE:
                     GET_ALL_FLEXIBLE(Py_UCS4, ucs4_get_end_p, lookup_hash_unicode, unicode_to_hash, PyUnicode_FromUCS4AndData);
                     break;
-                }
-                case NPY_STRING: {
+                case NPY_STRING:
                     GET_ALL_FLEXIBLE(char, char_get_end_p, lookup_hash_string, string_to_hash, PyBytes_FromStringAndSize);
                     break;
-                }
             }
         }
         else {
@@ -1818,52 +1805,54 @@ fam_get_all(FAMObject *self, PyObject *key) {
 
 
 # undef GET_ALL_SCALARS
+# undef GET_ANY_SCALARS
 
 
 // Give an array of the same kind as KAT, lookup and load any keys_pos. Depends on self, key_size, key_array, table_pos, i, k, values
 # define GET_ANY_SCALARS(npy_type_src, npy_type_dst, lookup_func, hash_func, post_deref) \
-npy_type_dst v;                                                        \
-for (; i < key_size; i++) {                                            \
-    v = post_deref(*(npy_type_src*)PyArray_GETPTR1(key_array, i));     \
-    table_pos = lookup_func(self, v, hash_func(v));                    \
-    if (table_pos < 0 || (self->table[table_pos].hash == -1)) {        \
-        if (PyErr_Occurred()) {                                        \
-            Py_DECREF(values);                                         \
-            return NULL;                                               \
-        }                                                              \
-        continue;                                                      \
-    }                                                                  \
-    keys_pos = self->table[table_pos].keys_pos;                        \
-    if (PyList_Append(values, PyList_GET_ITEM(int_cache, keys_pos))) { \
-        Py_DECREF(values);                                             \
-        return NULL;                                                   \
-    }                                                                  \
-}                                                                      \
+{                                                                          \
+    npy_type_dst v;                                                        \
+    for (; i < key_size; i++) {                                            \
+        v = post_deref(*(npy_type_src*)PyArray_GETPTR1(key_array, i));     \
+        table_pos = lookup_func(self, v, hash_func(v));                    \
+        if (table_pos < 0 || (self->table[table_pos].hash == -1)) {        \
+            if (PyErr_Occurred()) {                                        \
+                Py_DECREF(values);                                         \
+                return NULL;                                               \
+            }                                                              \
+            continue;                                                      \
+        }                                                                  \
+        keys_pos = self->table[table_pos].keys_pos;                        \
+        if (PyList_Append(values, PyList_GET_ITEM(int_cache, keys_pos))) { \
+            Py_DECREF(values);                                             \
+            return NULL;                                                   \
+        }                                                                  \
+    }                                                                      \
+}                                                                          \
 
-
-# define GET_ANY_FLEXIBLE(char_type, get_end_func, lookup_func, hash_func)\
-char_type* v;                                                             \
-Py_ssize_t dt_size = PyArray_DESCR(key_array)->elsize / sizeof(char_type);\
-Py_ssize_t k_size;                                                        \
-for (; i < key_size; i++) {                                               \
-    v = (char_type*)PyArray_GETPTR1(key_array, i);                        \
-    k_size = get_end_func(v, dt_size) - v;                                \
-    Py_hash_t hash = hash_func(v, k_size);                                \
-    table_pos = lookup_func(self, v, k_size, hash);                       \
-    if (table_pos < 0 || (self->table[table_pos].hash == -1)) {           \
-        if (PyErr_Occurred()) {                                           \
-            Py_DECREF(values);                                            \
-            return NULL;                                                  \
-        }                                                                 \
-        continue;                                                         \
-    }                                                                     \
-    keys_pos = self->table[table_pos].keys_pos;                           \
-    if (PyList_Append(values, PyList_GET_ITEM(int_cache, keys_pos))) {    \
-        Py_DECREF(values);                                                \
-        return NULL;                                                      \
-    }                                                                     \
-}                                                                         \
-
+# define GET_ANY_FLEXIBLE(char_type, get_end_func, lookup_func, hash_func)    \
+{                                                                             \
+    char_type* v;                                                             \
+    Py_ssize_t dt_size = PyArray_DESCR(key_array)->elsize / sizeof(char_type);\
+    Py_ssize_t k_size;                                                        \
+    for (; i < key_size; i++) {                                               \
+        v = (char_type*)PyArray_GETPTR1(key_array, i);                        \
+        k_size = get_end_func(v, dt_size) - v;                                \
+        table_pos = lookup_func(self, v, k_size, hash_func(v, k_size));       \
+        if (table_pos < 0 || (self->table[table_pos].hash == -1)) {           \
+            if (PyErr_Occurred()) {                                           \
+                Py_DECREF(values);                                            \
+                return NULL;                                                  \
+            }                                                                 \
+            continue;                                                         \
+        }                                                                     \
+        keys_pos = self->table[table_pos].keys_pos;                           \
+        if (PyList_Append(values, PyList_GET_ITEM(int_cache, keys_pos))) {    \
+            Py_DECREF(values);                                                \
+            return NULL;                                                      \
+        }                                                                     \
+    }                                                                         \
+}                                                                             \
 
 // Given a list or array of keys, return a list of the lookup-up integer values. If any unmatched keys are found, they are ignored. A list is always returned.
 static PyObject *
@@ -1918,60 +1907,45 @@ fam_get_any(FAMObject *self, PyObject *key) {
         if (kat_is_kind(self->keys_array_type, PyArray_DESCR(key_array)->kind)) {
             Py_ssize_t table_pos;
             switch (key_array_t) {
-                case NPY_INT64: {
+                case NPY_INT64:
                     GET_ANY_SCALARS(npy_int64, npy_int64, lookup_hash_int, int_to_hash,);
                     break;
-                }
-                case NPY_INT32: {
+                case NPY_INT32:
                     GET_ANY_SCALARS(npy_int32, npy_int64, lookup_hash_int, int_to_hash,);
                     break;
-                }
-                case NPY_INT16: {
+                case NPY_INT16:
                     GET_ANY_SCALARS(npy_int16, npy_int64, lookup_hash_int, int_to_hash,);
                     break;
-                }
-                case NPY_INT8: {
+                case NPY_INT8:
                     GET_ANY_SCALARS(npy_int8, npy_int64, lookup_hash_int, int_to_hash,);
                     break;
-                }
-
-                case NPY_UINT64: {
+                case NPY_UINT64:
                     GET_ANY_SCALARS(npy_uint64, npy_uint64, lookup_hash_uint, uint_to_hash,);
                     break;
-                }
-                case NPY_UINT32: {
+                case NPY_UINT32:
                     GET_ANY_SCALARS(npy_uint32, npy_uint64, lookup_hash_uint, uint_to_hash,);
                     break;
-                }
-                case NPY_UINT16: {
+                case NPY_UINT16:
                     GET_ANY_SCALARS(npy_uint16, npy_uint64, lookup_hash_uint, uint_to_hash,);
                     break;
-                }
-                case NPY_UINT8: {
+                case NPY_UINT8:
                     GET_ANY_SCALARS(npy_uint8, npy_uint64, lookup_hash_uint, uint_to_hash,);
                     break;
-                }
-
-                case NPY_FLOAT64: {
+                case NPY_FLOAT64:
                     GET_ANY_SCALARS(npy_double, npy_double, lookup_hash_double, double_to_hash,);
                     break;
-                }
-                case NPY_FLOAT32: {
+                case NPY_FLOAT32:
                     GET_ANY_SCALARS(npy_float, npy_double, lookup_hash_double, double_to_hash,);
                     break;
-                }
-                case NPY_FLOAT16: {
+                case NPY_FLOAT16:
                     GET_ANY_SCALARS(npy_half, npy_double, lookup_hash_double, double_to_hash, npy_half_to_double);
                     break;
-                }
-                case NPY_UNICODE: {
+                case NPY_UNICODE:
                     GET_ANY_FLEXIBLE(Py_UCS4, ucs4_get_end_p, lookup_hash_unicode, unicode_to_hash);
                     break;
-                }
-                case NPY_STRING: {
+                case NPY_STRING:
                     GET_ANY_FLEXIBLE(char, char_get_end_p, lookup_hash_string, string_to_hash);
                     break;
-                }
             }
         }
         else {
@@ -2002,6 +1976,7 @@ fam_get_any(FAMObject *self, PyObject *key) {
 
 
 # undef GET_ANY_SCALARS
+# undef GET_ALL_SCALARS
 
 
 static PyObject *
