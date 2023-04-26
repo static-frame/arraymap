@@ -256,7 +256,7 @@ CLS_FF = (
 FF_ORDER = [f.NAME for f in sorted(CLS_FF, key=lambda ff: ff.SORT)]
 
 # -------------------------------------------------------------------------------
-NUMBER = 10
+NUMBER = 2
 
 from itertools import product
 
@@ -279,6 +279,7 @@ def plot_performance(frame, suffix: str = ""):
     # cmap = plt.get_cmap('terrain')
     cmap = plt.get_cmap("plasma")
     color = cmap(np.arange(processor_total) / processor_total)
+    import ipdb; ipdb.set_trace()
 
     # category is the size of the array
     for cat_count, (cat_label, cat) in enumerate(frame.groupby("size")):
