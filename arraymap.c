@@ -1805,7 +1805,7 @@ fam_get_all(FAMObject *self, PyObject *key) {
 
 
 # undef GET_ALL_SCALARS
-# undef GET_ANY_SCALARS
+# undef GET_ALL_FLEXIBLE
 
 
 // Give an array of the same kind as KAT, lookup and load any keys_pos. Depends on self, key_size, key_array, table_pos, i, k, values
@@ -1976,7 +1976,7 @@ fam_get_any(FAMObject *self, PyObject *key) {
 
 
 # undef GET_ANY_SCALARS
-# undef GET_ALL_SCALARS
+# undef GET_ANY_FLEXIBLE
 
 
 static PyObject *
