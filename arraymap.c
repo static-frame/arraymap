@@ -1619,7 +1619,7 @@ get(FAMObject *self, PyObject *key, PyObject *missing) {
 }
 
 
-// Give an array of the same kind as KAT, lookup and load all kes_pos. Depends on self, key_size, key_array, keys_pos, i, k, b
+// Give an array of the same kind as KAT, lookup and load all keys_pos. Depends on self, key_size, key_array, table_pos, i, k, b
 # define GET_ALL_SCALARS(npy_type_src, npy_type_dst, lookup_func, hash_func, to_obj_func, post_deref) \
 npy_type_dst v;                                                    \
 for (; i < key_size; i++) {                                        \
@@ -1651,13 +1651,13 @@ fam_get_all(FAMObject *self, PyObject *key) {
     PyObject *array = NULL;
     Py_ssize_t i = 0;
 
-    int is_list;
+    int key_is_list;
     if (PyList_CheckExact(key)) {
-        is_list = 1;
+        key_is_list = 1;
         key_size = PyList_GET_SIZE(key);
     }
     else if (PyArray_Check(key)) {
-        is_list = 0;
+        key_is_list = 0;
         key_size = PyArray_SIZE((PyArrayObject *)key);
     }
     else {
@@ -1673,7 +1673,7 @@ fam_get_all(FAMObject *self, PyObject *key) {
     }
     npy_int64* b = (npy_int64*)PyArray_DATA((PyArrayObject*)array);
 
-    if (is_list) {
+    if (key_is_list) {
         for (; i < key_size; i++) {
             k = PyList_GET_ITEM(key, i); // borrow
             keys_pos = lookup(self, k);
@@ -1773,21 +1773,61 @@ fam_get_all(FAMObject *self, PyObject *key) {
 
 }
 
+
+# undef GET_ALL_SCALARS
+
+
+// Give an array of the same kind as KAT, lookup and load any keys_pos. Depends on self, key_size, key_array, table_pos, i, k, values
+# define GET_ANY_SCALARS(npy_type_src, npy_type_dst, lookup_func, hash_func, post_deref) \
+npy_type_dst v;                                                        \
+for (; i < key_size; i++) {                                            \
+    v = post_deref(*(npy_type_src*)PyArray_GETPTR1(key_array, i));     \
+    table_pos = lookup_func(self, v, hash_func(v));                    \
+    if (table_pos < 0) {                                               \
+        if (PyErr_Occurred()) {                                        \
+            Py_DECREF(values);                                         \
+            return NULL;                                               \
+        }                                                              \
+        continue;                                                      \
+    }                                                                  \
+    keys_pos = self->table[table_pos].keys_pos;                        \
+    if (PyList_Append(values, PyList_GET_ITEM(int_cache, keys_pos))) { \
+        Py_DECREF(values);                                             \
+        return NULL;                                                   \
+    }                                                                  \
+}                                                                      \
+
+
 // Given a list or array of keys, return a list of the lookup-up integer values. If any unmatched keys are found, they are ignored. A list is always returned.
 static PyObject *
 fam_get_any(FAMObject *self, PyObject *key) {
     Py_ssize_t key_size = 0;
     Py_ssize_t keys_pos = -1;
+    Py_ssize_t i = 0;
     PyObject* k = NULL;
     PyObject* values = NULL;
 
+    int key_is_list;
     if (PyList_CheckExact(key)) {
+        key_is_list = 1;
         key_size = PyList_GET_SIZE(key);
-        values = PyList_New(0);
-        if (!values) {
-            return NULL;
-        }
-        for (Py_ssize_t i = 0; i < key_size; i++) {
+    }
+    else if (PyArray_Check(key)) {
+        key_is_list = 0;
+        key_size = PyArray_SIZE((PyArrayObject *)key);
+    }
+    else {
+        PyErr_SetString(PyExc_TypeError, "Must provide a list or array.");
+        return NULL;
+    }
+
+    values = PyList_New(0);
+    if (!values) {
+        return NULL;
+    }
+
+    if (key_is_list) {
+        for (; i < key_size; i++) {
             k = PyList_GET_ITEM(key, i); // borrow
             keys_pos = lookup(self, k);
             if (keys_pos < 0) {
@@ -1803,40 +1843,90 @@ fam_get_any(FAMObject *self, PyObject *key) {
             }
         }
     }
-    else if (PyArray_Check(key)) {
+    else {
         PyArrayObject* key_array = (PyArrayObject *)key;
-        key_size = PyArray_SIZE(key_array);
-        values = PyList_New(0);
-        if (!values) {
-            return NULL;
-        }
-        for (Py_ssize_t i = 0; i < key_size; i++) {
-            k = PyArray_ToScalar(PyArray_GETPTR1(key_array, i), key_array);
-            if (k == NULL) {
-                Py_DECREF(values);
-                return NULL;
+        // if key is an np array of the same kind as this FAMs keys, we can do optimized lookups; otherwise, we have to go through scalar to do full branching and coercion into lookup
+        int key_array_t = PyArray_TYPE(key_array);
+
+        if (kat_is_kind(self->keys_array_type, PyArray_DESCR(key_array)->kind)) {
+            Py_ssize_t table_pos;
+            switch (key_array_t) {
+                case NPY_INT64: {
+                    GET_ANY_SCALARS(npy_int64, npy_int64, lookup_hash_int, int_to_hash,);
+                    break;
+                }
+                case NPY_INT32: {
+                    GET_ANY_SCALARS(npy_int32, npy_int64, lookup_hash_int, int_to_hash,);
+                    break;
+                }
+                case NPY_INT16: {
+                    GET_ANY_SCALARS(npy_int16, npy_int64, lookup_hash_int, int_to_hash,);
+                    break;
+                }
+                case NPY_INT8: {
+                    GET_ANY_SCALARS(npy_int8, npy_int64, lookup_hash_int, int_to_hash,);
+                    break;
+                }
+
+                case NPY_UINT64: {
+                    GET_ANY_SCALARS(npy_uint64, npy_uint64, lookup_hash_uint, uint_to_hash,);
+                    break;
+                }
+                case NPY_UINT32: {
+                    GET_ANY_SCALARS(npy_uint32, npy_uint64, lookup_hash_uint, uint_to_hash,);
+                    break;
+                }
+                case NPY_UINT16: {
+                    GET_ANY_SCALARS(npy_uint16, npy_uint64, lookup_hash_uint, uint_to_hash,);
+                    break;
+                }
+                case NPY_UINT8: {
+                    GET_ANY_SCALARS(npy_uint8, npy_uint64, lookup_hash_uint, uint_to_hash,);
+                    break;
+                }
+
+                case NPY_FLOAT64: {
+                    GET_ANY_SCALARS(npy_double, npy_double, lookup_hash_double, double_to_hash,);
+                    break;
+                }
+                case NPY_FLOAT32: {
+                    GET_ANY_SCALARS(npy_float, npy_double, lookup_hash_double, double_to_hash,);
+                    break;
+                }
+                case NPY_FLOAT16: {
+                    GET_ANY_SCALARS(npy_half, npy_double, lookup_hash_double, double_to_hash, npy_half_to_double);
+                    break;
+                }
             }
-            keys_pos = lookup(self, k);
-            Py_DECREF(k);
-            if (keys_pos < 0) {
-                if (PyErr_Occurred()) { // only exit if exception set
+        }
+        else {
+            for (; i < key_size; i++) {
+                k = PyArray_ToScalar(PyArray_GETPTR1(key_array, i), key_array);
+                if (k == NULL) {
                     Py_DECREF(values);
                     return NULL;
                 }
-                continue; // do not raise
-            }
-            if (PyList_Append(values, PyList_GET_ITEM(int_cache, keys_pos))) {
-                Py_DECREF(values);
-                return NULL;
+                keys_pos = lookup(self, k);
+                Py_DECREF(k);
+                if (keys_pos < 0) {
+                    if (PyErr_Occurred()) { // only exit if exception set
+                        Py_DECREF(values);
+                        return NULL;
+                    }
+                    continue; // do not raise
+                }
+                if (PyList_Append(values, PyList_GET_ITEM(int_cache, keys_pos))) {
+                    Py_DECREF(values);
+                    return NULL;
+                }
             }
         }
     }
-    else {
-        PyErr_SetString(PyExc_TypeError, "Must provide a list or array.");
-        return NULL;
-    }
     return values; // might be empty
 }
+
+
+# undef GET_ANY_SCALARS
 
 
 static PyObject *
