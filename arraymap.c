@@ -1595,29 +1595,28 @@ get(FAMObject *self, PyObject *key, PyObject *missing) {
     return index;
 }
 
-// Depends on self, key_size, key_array, keys_pos, i, k, b
+
+// Give an array of the same kind as KAT, lookup and load all kes_pos. Depends on self, key_size, key_array, keys_pos, i, k, b
 # define GET_ALL_SCALARS(npy_type_src, npy_type_dst, lookup_func, hash_func, to_obj_func, post_deref) \
-npy_type_dst v; \
-for (; i < key_size; i++) {\
-    v = post_deref(*(npy_type_src*)PyArray_GETPTR1(key_array, i));\
-    table_pos = lookup_func(self, v, hash_func(v));\
-    if (table_pos < 0) {\
-        Py_DECREF(array);\
-        if (PyErr_Occurred()) {\
-            return NULL;\
-        }\
-        k = to_obj_func(v);\
-        if (k == NULL) {\
-            return NULL;\
-        }\
-        PyErr_SetObject(PyExc_KeyError, k);\
-        Py_DECREF(k);\
-        return NULL;\
-    }\
-    b[i] = (npy_int64)self->table[table_pos].keys_pos;\
-}\
-
-
+npy_type_dst v;                                                    \
+for (; i < key_size; i++) {                                        \
+    v = post_deref(*(npy_type_src*)PyArray_GETPTR1(key_array, i)); \
+    table_pos = lookup_func(self, v, hash_func(v));                \
+    if (table_pos < 0) {                                           \
+        Py_DECREF(array);                                          \
+        if (PyErr_Occurred()) {                                    \
+            return NULL;                                           \
+        }                                                          \
+        k = to_obj_func(v);                                        \
+        if (k == NULL) {                                           \
+            return NULL;                                           \
+        }                                                          \
+        PyErr_SetObject(PyExc_KeyError, k);                        \
+        Py_DECREF(k);                                              \
+        return NULL;                                               \
+    }                                                              \
+    b[i] = (npy_int64)self->table[table_pos].keys_pos;             \
+}                                                                  \
 
 
 // Given a list or array of keys, return an array of the lookup-up integer values. If any unmatched keys are found, a KeyError will raise. An immutable array is always returned.
