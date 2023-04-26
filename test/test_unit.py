@@ -774,8 +774,9 @@ def test_fam_array_get_all_g2():
     a1.flags.writeable = False
     fam = FrozenAutoMap(a1)
 
-    # with pytest.raises(KeyError):
-    fam.get_all(np.array([b"bb", b"c"]))
+    with pytest.raises(KeyError):
+        fam.get_all(np.array([b"dd", b"x"]))
+
 
 # -------------------------------------------------------------------------------
 

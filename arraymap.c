@@ -124,10 +124,10 @@ kat_is_kind(KeysArrayType kat, char kind) {
         case KAT_FLOAT16:
             return kind == 'f';
 
-        case KAT_UNICODE:
-            return kind == 'U';
-        case KAT_STRING:
-            return kind == 'S';
+        // case KAT_UNICODE:
+        //     return kind == 'U';
+        // case KAT_STRING:
+        //     return kind == 'S';
         default:
             return 0;
     }
@@ -865,7 +865,7 @@ lookup_hash_string(
     Py_ssize_t table_pos = hash & mask;
 
     PyArrayObject *a = (PyArrayObject *)self->keys;
-    Py_ssize_t dt_size = PyArray_DESCR(a)->elsize / sizeof(char);
+    Py_ssize_t dt_size = PyArray_DESCR(a)->elsize;
     Py_ssize_t cmp_bytes = Py_MIN(key_size, dt_size);
 
     Py_hash_t h = 0;
@@ -1626,7 +1626,7 @@ npy_type_dst v;                                                    \
 for (; i < key_size; i++) {                                        \
     v = post_deref(*(npy_type_src*)PyArray_GETPTR1(key_array, i)); \
     table_pos = lookup_func(self, v, hash_func(v));                \
-    if (table_pos < 0) {                                           \
+    if (table_pos < 0 || (self->table[table_pos].hash == -1)) {    \
         Py_DECREF(array);                                          \
         if (PyErr_Occurred()) {                                    \
             return NULL;                                           \
@@ -1752,7 +1752,7 @@ fam_get_all(FAMObject *self, PyObject *key) {
                         k_size = ucs4_get_end_p(v, dt_size) - v;
                         Py_hash_t hash = unicode_to_hash(v, k_size);
                         table_pos = lookup_hash_unicode(self, v, k_size, hash);
-                        if (table_pos < 0) {
+                        if (table_pos < 0 || (self->table[table_pos].hash == -1)) {
                             Py_DECREF(array);
                             if (PyErr_Occurred()) {
                                 return NULL;
@@ -1770,7 +1770,6 @@ fam_get_all(FAMObject *self, PyObject *key) {
                     break;
                 }
                 case NPY_STRING: {
-                    DEBUG_MSG_OBJ("in string branch", key);
                     char* v;
                     Py_ssize_t dt_size = PyArray_DESCR(key_array)->elsize / 1;
                     Py_ssize_t k_size;
@@ -1779,13 +1778,14 @@ fam_get_all(FAMObject *self, PyObject *key) {
                         k_size = char_get_end_p(v, dt_size) - v;
                         Py_hash_t hash = string_to_hash(v, k_size);
                         table_pos = lookup_hash_string(self, v, k_size, hash);
-                        DEBUG_MSG_OBJ("table_pos", PyLong_FromLongLong(table_pos));
-                        if (table_pos < 0) {
+                        // DEBUG_MSG_OBJ("k_size", PyLong_FromLongLong(k_size));
+                        // DEBUG_MSG_OBJ("table_pos", PyLong_FromLongLong(table_pos));
+                        if (table_pos < 0 || (self->table[table_pos].hash == -1)) {
                             Py_DECREF(array);
                             if (PyErr_Occurred()) {
                                 return NULL;
                             }
-                            k = PyUnicode_FromKindAndData(PyUnicode_1BYTE_KIND, v, k_size);
+                            k = PyBytes_FromStringAndSize(v, k_size);
                             if (k == NULL) {
                                 return NULL;
                             }
@@ -1838,7 +1838,7 @@ npy_type_dst v;                                                        \
 for (; i < key_size; i++) {                                            \
     v = post_deref(*(npy_type_src*)PyArray_GETPTR1(key_array, i));     \
     table_pos = lookup_func(self, v, hash_func(v));                    \
-    if (table_pos < 0) {                                               \
+    if (table_pos < 0 || (self->table[table_pos].hash == -1)) {        \
         if (PyErr_Occurred()) {                                        \
             Py_DECREF(values);                                         \
             return NULL;                                               \
