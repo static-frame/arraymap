@@ -1265,7 +1265,12 @@ insert_int(
         return -1;
     }
     if (self->table[table_pos].hash != -1) {
-        PyErr_SetObject(NonUniqueError, PyLong_FromSsize_t(key));
+        PyObject* er = PyLong_FromLongLong(key); // for error reporting
+        if (er == NULL) {
+            return -1;
+        }
+        PyErr_SetObject(NonUniqueError, er);
+        Py_DECREF(er);
         return -1;
     }
     self->table[table_pos].keys_pos = keys_pos;
@@ -1290,7 +1295,12 @@ insert_uint(
         return -1;
     }
     if (self->table[table_pos].hash != -1) {
-        PyErr_SetObject(NonUniqueError, PyLong_FromSsize_t(key));
+        PyObject* er = PyLong_FromUnsignedLongLong(key);
+        if (er == NULL) {
+            return -1;
+        }
+        PyErr_SetObject(NonUniqueError, er);
+        Py_DECREF(er);
         return -1;
     }
     self->table[table_pos].keys_pos = keys_pos;
@@ -1316,7 +1326,12 @@ insert_double(
         return -1;
     }
     if (self->table[table_pos].hash != -1) {
-        PyErr_SetObject(NonUniqueError, PyFloat_FromDouble(key));
+        PyObject* er = PyFloat_FromDouble(key);
+        if (er == NULL) {
+            return -1;
+        }
+        PyErr_SetObject(NonUniqueError, er);
+        Py_DECREF(er);
         return -1;
     }
     self->table[table_pos].keys_pos = keys_pos;
@@ -1342,8 +1357,12 @@ insert_unicode(
         return -1;
     }
     if (self->table[table_pos].hash != -1) {
-        PyErr_SetObject(NonUniqueError,
-            PyUnicode_FromKindAndData(PyUnicode_4BYTE_KIND, key, key_size));
+        PyObject* er = PyUnicode_FromKindAndData(PyUnicode_4BYTE_KIND, key, key_size);
+        if (er == NULL) {
+            return -1;
+        }
+        PyErr_SetObject(NonUniqueError, er);
+        Py_DECREF(er);
         return -1;
     }
     self->table[table_pos].keys_pos = keys_pos;
@@ -1369,8 +1388,12 @@ insert_string(
         return -1;
     }
     if (self->table[table_pos].hash != -1) {
-        PyErr_SetObject(NonUniqueError,
-            PyBytes_FromStringAndSize(key, key_size));
+        PyObject* er = PyBytes_FromStringAndSize(key, key_size);
+        if (er == NULL) {
+            return -1;
+        }
+        PyErr_SetObject(NonUniqueError, er);
+        Py_DECREF(er);
         return -1;
     }
     self->table[table_pos].keys_pos = keys_pos;
@@ -2193,6 +2216,7 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
     }
     return 0;
 error:
+    // assume all dynamic memory assigned to struct attrs that will be cleaned
     return -1;
 }
 
