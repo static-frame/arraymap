@@ -742,6 +742,41 @@ def test_fam_array_get_all_e():
     assert fam.get_all(a1) == [0]
 
 
+def test_fam_array_get_all_f1():
+    a1 = np.array(("a", "bb", "ccc", "dd"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    post = fam.get_all(np.array(["ccc", "dd", "bb", "bb"]))
+    assert post.tolist() == [2, 3, 1, 1]
+
+
+def test_fam_array_get_all_f2():
+    a1 = np.array(("a", "bb", "ccc", "dd"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    with pytest.raises(KeyError):
+        fam.get_all(np.array(["bb", "c"]))
+
+
+def test_fam_array_get_all_g1():
+    a1 = np.array((b"a", b"bb", b"ccc", b"dd"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    post = fam.get_all(np.array([b"ccc", b"dd", b"bb", b"bb"]))
+    assert post.tolist() == [2, 3, 1, 1]
+
+
+def test_fam_array_get_all_g2():
+    a1 = np.array((b"a", b"bb", b"ccc", b"dd"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    # with pytest.raises(KeyError):
+    fam.get_all(np.array([b"bb", b"c"]))
+
 # -------------------------------------------------------------------------------
 
 

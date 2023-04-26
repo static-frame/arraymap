@@ -124,10 +124,10 @@ kat_is_kind(KeysArrayType kat, char kind) {
         case KAT_FLOAT16:
             return kind == 'f';
 
-        // case KAT_UNICODE:
-        //     return kind == 'U';
-        // case KAT_STRING:
-        //     return kind == 'S';
+        case KAT_UNICODE:
+            return kind == 'U';
+        case KAT_STRING:
+            return kind == 'S';
         default:
             return 0;
     }
@@ -154,7 +154,7 @@ typedef enum ViewKind{
 // NOTE: would like to use strchr(str, '\0') instead of this routine, but some buffers might not have a null terminator and stread by full to the the dt_size.
 static inline Py_UCS4*
 ucs4_get_end_p(Py_UCS4* p_start, Py_ssize_t dt_size) {
-    Py_UCS4* p;
+    Py_UCS4* p = p_start;
     for (p = p_start + dt_size - 1; p >= p_start; p--) {
         if (*p != '\0') {
             return p + 1; // return 1 more than the first non-null from the right
@@ -164,6 +164,7 @@ ucs4_get_end_p(Py_UCS4* p_start, Py_ssize_t dt_size) {
 }
 
 
+// TODO: have this go in reverse, as ucs4_get_end_p
 static inline char*
 char_get_end_p(char* p, Py_ssize_t dt_size) {
     char* p_end = p + dt_size;
@@ -235,7 +236,7 @@ double_to_hash(double v)
 }
 
 
-// This is a "djb2" hash algorithm.
+// The `str` arg is a pointer to a C-array of Py_UCS4; we will only read `len` characters from this. This is a "djb2" hash algorithm.
 static inline Py_hash_t
 unicode_to_hash(Py_UCS4 *str, Py_ssize_t len) {
     Py_UCS4* p = str;
@@ -1740,6 +1741,60 @@ fam_get_all(FAMObject *self, PyObject *key) {
                 }
                 case NPY_FLOAT16: {
                     GET_ALL_SCALARS(npy_half, npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble, npy_half_to_double);
+                    break;
+                }
+                case NPY_UNICODE: {
+                    Py_UCS4* v;
+                    Py_ssize_t dt_size = PyArray_DESCR(key_array)->elsize / UCS4_SIZE;
+                    Py_ssize_t k_size;
+                    for (; i < key_size; i++) {
+                        v = (Py_UCS4*)PyArray_GETPTR1(key_array, i);
+                        k_size = ucs4_get_end_p(v, dt_size) - v;
+                        Py_hash_t hash = unicode_to_hash(v, k_size);
+                        table_pos = lookup_hash_unicode(self, v, k_size, hash);
+                        if (table_pos < 0) {
+                            Py_DECREF(array);
+                            if (PyErr_Occurred()) {
+                                return NULL;
+                            }
+                            k = PyUnicode_FromKindAndData(PyUnicode_4BYTE_KIND, v, k_size);
+                            if (k == NULL) {
+                                return NULL;
+                            }
+                            PyErr_SetObject(PyExc_KeyError, k);
+                            Py_DECREF(k);
+                            return NULL;
+                        }
+                        b[i] = (npy_int64)self->table[table_pos].keys_pos;
+                    }
+                    break;
+                }
+                case NPY_STRING: {
+                    DEBUG_MSG_OBJ("in string branch", key);
+                    char* v;
+                    Py_ssize_t dt_size = PyArray_DESCR(key_array)->elsize / 1;
+                    Py_ssize_t k_size;
+                    for (; i < key_size; i++) {
+                        v = (char*)PyArray_GETPTR1(key_array, i);
+                        k_size = char_get_end_p(v, dt_size) - v;
+                        Py_hash_t hash = string_to_hash(v, k_size);
+                        table_pos = lookup_hash_string(self, v, k_size, hash);
+                        DEBUG_MSG_OBJ("table_pos", PyLong_FromLongLong(table_pos));
+                        if (table_pos < 0) {
+                            Py_DECREF(array);
+                            if (PyErr_Occurred()) {
+                                return NULL;
+                            }
+                            k = PyUnicode_FromKindAndData(PyUnicode_1BYTE_KIND, v, k_size);
+                            if (k == NULL) {
+                                return NULL;
+                            }
+                            PyErr_SetObject(PyExc_KeyError, k);
+                            Py_DECREF(k);
+                            return NULL;
+                        }
+                        b[i] = (npy_int64)self->table[table_pos].keys_pos;
+                    }
                     break;
                 }
             }
