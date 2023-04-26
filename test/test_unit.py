@@ -717,6 +717,14 @@ def test_fam_array_get_all_d2():
         fam.get_all(np.array(("bb", "a", "ccc", "aa")))
 
 
+def test_fam_array_get_all_e():
+    a1 = np.array((2,), dtype=np.uint64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    assert fam.get_all([2]) == [0]
+    assert fam.get_all(a1) == [0]
+
+
 # -------------------------------------------------------------------------------
 
 

@@ -1595,13 +1595,13 @@ get(FAMObject *self, PyObject *key, PyObject *missing) {
     return index;
 }
 
-// Depends on key_size, key_array, keys_pos, i, k, b
-# define GET_ALL_SCALARS(npy_type_src, npy_type_dst, lookup_func, hash_func, to_obj_func)    \
-npy_type_dst v;                                                    \
+// Depends on self, key_size, key_array, keys_pos, i, k, b
+# define GET_ALL_SCALARS(npy_type_src, npy_type_dst, lookup_func, hash_func, to_obj_func, post_deref) \
+npy_type_dst v; \
 for (; i < key_size; i++) {\
-    v = *(npy_type_src*)PyArray_GETPTR1(key_array, i);\
-    keys_pos = lookup_func(self, v, hash_func(v));\
-    if (keys_pos < 0) {\
+    v = post_deref(*(npy_type_src*)PyArray_GETPTR1(key_array, i));\
+    table_pos = lookup_func(self, v, hash_func(v));\
+    if (table_pos < 0) {\
         Py_DECREF(array);\
         if (PyErr_Occurred()) {\
             return NULL;\
@@ -1614,7 +1614,7 @@ for (; i < key_size; i++) {\
         Py_DECREF(k);\
         return NULL;\
     }\
-    b[i] = (npy_int64)keys_pos;\
+    b[i] = (npy_int64)self->table[table_pos].keys_pos;\
 }\
 
 
@@ -1669,21 +1669,52 @@ fam_get_all(FAMObject *self, PyObject *key) {
         npy_int64* b = (npy_int64*)PyArray_DATA((PyArrayObject*)array);
 
         if (kat_is_kind(self->keys_array_type, array_kind)) {
+            Py_ssize_t table_pos;
             switch (array_t) {
                 case NPY_INT64: {
-                    GET_ALL_SCALARS(npy_int64, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong);
+                    GET_ALL_SCALARS(npy_int64, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
                     break;
                 }
                 case NPY_INT32: {
-                    GET_ALL_SCALARS(npy_int32, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong);
+                    GET_ALL_SCALARS(npy_int32, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
                     break;
                 }
+                case NPY_INT16: {
+                    GET_ALL_SCALARS(npy_int16, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
+                    break;
+                }
+                case NPY_INT8: {
+                    GET_ALL_SCALARS(npy_int8, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
+                    break;
+                }
+
                 case NPY_UINT64: {
-                    GET_ALL_SCALARS(npy_uint64, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong);
+                    GET_ALL_SCALARS(npy_uint64, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong,);
                     break;
                 }
+                case NPY_UINT32: {
+                    GET_ALL_SCALARS(npy_uint32, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong,);
+                    break;
+                }
+                case NPY_UINT16: {
+                    GET_ALL_SCALARS(npy_uint16, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong,);
+                    break;
+                }
+                case NPY_UINT8: {
+                    GET_ALL_SCALARS(npy_uint8, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong,);
+                    break;
+                }
+
                 case NPY_FLOAT64: {
-                    GET_ALL_SCALARS(npy_double, npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble);
+                    GET_ALL_SCALARS(npy_double, npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble,);
+                    break;
+                }
+                case NPY_FLOAT32: {
+                    GET_ALL_SCALARS(npy_float, npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble,);
+                    break;
+                }
+                case NPY_FLOAT16: {
+                    GET_ALL_SCALARS(npy_half, npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble, npy_half_to_double);
                     break;
                 }
             }
@@ -1968,13 +1999,13 @@ fam_new(PyTypeObject *cls, PyObject *args, PyObject *kwargs)
 }
 
 
-// This macro can be used with integer and floating point NumPy types, given an `npy_type` and a specialized `insert_func`. Uses context of `fam_init` to get `fam`, `contiguous`, `a`, `keys_size`, and `i`. An optional `pre_insert` function can be supplied to transform extracted values before calling the appropriate insert function.
-# define INSERT_SCALARS(npy_type, insert_func, pre_insert)    \
+// This macro can be used with integer and floating point NumPy types, given an `npy_type` and a specialized `insert_func`. Uses context of `fam_init` to get `fam`, `contiguous`, `a`, `keys_size`, and `i`. An optional `post_deref` function can be supplied to transform extracted values before calling the appropriate insert function.
+# define INSERT_SCALARS(npy_type, insert_func, post_deref)    \
 if (contiguous) {                                             \
     npy_type* b = (npy_type*)PyArray_DATA(a);                 \
     npy_type* b_end = b + keys_size;                          \
     while (b < b_end) {                                       \
-        if (insert_func(fam, pre_insert(*b), i, -1)) {        \
+        if (insert_func(fam, post_deref(*b), i, -1)) {        \
             goto error;                                       \
         }                                                     \
         b++;                                                  \
@@ -1984,7 +2015,7 @@ if (contiguous) {                                             \
 else {                                                        \
     for (; i < keys_size; i++) {                              \
         if (insert_func(fam,                                  \
-                pre_insert(*(npy_type*)PyArray_GETPTR1(a, i)),\
+                post_deref(*(npy_type*)PyArray_GETPTR1(a, i)),\
                 i,                                            \
                 -1)) {                                        \
             goto error;                                       \
