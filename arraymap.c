@@ -1627,18 +1627,32 @@ fam_get_all(FAMObject *self, PyObject *key) {
     Py_ssize_t keys_pos = -1;
     PyObject* k = NULL;
     PyObject *array = NULL;
+    Py_ssize_t i = 0;
 
+    int is_list;
     if (PyList_CheckExact(key)) {
+        is_list = 1;
         key_size = PyList_GET_SIZE(key);
+    }
+    else if (PyArray_Check(key)) {
+        is_list = 0;
+        key_size = PyArray_SIZE((PyArrayObject *)key);
+    }
+    else {
+        PyErr_SetString(PyExc_TypeError, "Must provide a list or array.");
+        return NULL;
+    }
 
-        npy_intp dims[] = {key_size};
-        array = PyArray_EMPTY(1, dims, NPY_INT64, 0);
-        if (array == NULL) {
-            return NULL;
-        }
-        npy_int64* b = (npy_int64*)PyArray_DATA((PyArrayObject*)array);
+    // construct array to be returned
+    npy_intp dims[] = {key_size};
+    array = PyArray_EMPTY(1, dims, NPY_INT64, 0);
+    if (array == NULL) {
+        return NULL;
+    }
+    npy_int64* b = (npy_int64*)PyArray_DATA((PyArrayObject*)array);
 
-        for (Py_ssize_t i = 0; i < key_size; i++) {
+    if (is_list) {
+        for (; i < key_size; i++) {
             k = PyList_GET_ITEM(key, i); // borrow
             keys_pos = lookup(self, k);
             if (keys_pos < 0) {
@@ -1652,25 +1666,14 @@ fam_get_all(FAMObject *self, PyObject *key) {
             b[i] = (npy_int64)keys_pos;
         }
     }
-    else if (PyArray_Check(key)) {
+    else { // key is an array
         PyArrayObject* key_array = (PyArrayObject *)key;
-        key_size = PyArray_SIZE(key_array);
-
         // if key is an np array of the same kind as this FAMs keys, we can do optimized lookups; otherwise, we have to go through scalar to do full branching and coercion into lookup
-        int array_t = PyArray_TYPE(key_array);
-        char array_kind = PyArray_DESCR(key_array)->kind;
+        int key_array_t = PyArray_TYPE(key_array);
 
-        npy_intp dims[] = {key_size};
-        array = PyArray_EMPTY(1, dims, NPY_INT64, 0);
-        if (array == NULL) {
-            return NULL;
-        }
-        Py_ssize_t i = 0;
-        npy_int64* b = (npy_int64*)PyArray_DATA((PyArrayObject*)array);
-
-        if (kat_is_kind(self->keys_array_type, array_kind)) {
+        if (kat_is_kind(self->keys_array_type, PyArray_DESCR(key_array)->kind)) {
             Py_ssize_t table_pos;
-            switch (array_t) {
+            switch (key_array_t) {
                 case NPY_INT64: {
                     GET_ALL_SCALARS(npy_int64, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
                     break;
@@ -1742,10 +1745,7 @@ fam_get_all(FAMObject *self, PyObject *key) {
             }
         }
     }
-    else {
-        PyErr_SetString(PyExc_TypeError, "Must provide a list or array.");
-        return NULL;
-    }
+
     PyArray_CLEARFLAGS((PyArrayObject *)array, NPY_ARRAY_WRITEABLE);
     return array;
 
