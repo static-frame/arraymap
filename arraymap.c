@@ -184,11 +184,15 @@ char_get_end_p(char* p, Py_ssize_t dt_size) {
 }
 
 
+// This masks the input with INT64_MAX, which removes the MSB; we then cast to an int64; the range is now between 0 and INT64_MAX. We then use the MSB of the original value; if set, we negate the number, producing negative values for the upper half of the uint64 range. Note that we only need to check for hash -1 in this branch.
 static inline Py_hash_t
 uint_to_hash(npy_uint64 v) {
-    Py_hash_t hash = (Py_hash_t)(v >> 1); // half unsigned fits in signed
-    if (hash == -1) {
-        return -2;
+    Py_hash_t hash = (Py_hash_t)(v & INT64_MAX);
+    if (v >> 63) {
+        hash = -hash;
+        if (hash == -1) {
+            return -2;
+        }
     }
     return hash;
 }
