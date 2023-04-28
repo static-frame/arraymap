@@ -443,7 +443,6 @@ class FFS128(FixtureFactory):
     @staticmethod
     def get_array(size: int) -> np.ndarray:
         return get_string_array(size, 128, "S")
-<<<<<<< HEAD
 
 
 class FFDTY(FixtureFactory):
@@ -455,8 +454,6 @@ class FFDTY(FixtureFactory):
         array = np.arange(INT_START, INT_START + size, dtype="datetime64[Y]")
         array.flags.writeable = False
         return array
-=======
->>>>>>> master
 
 
 class FFDTD(FixtureFactory):

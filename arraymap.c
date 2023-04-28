@@ -64,12 +64,25 @@ typedef enum KeysArrayType{
     KAT_UNICODE,
     KAT_STRING,
 
-    KAT_DT,
+    KAT_DTY,
+    KAT_DTM,
+    KAT_DTW,
+    KAT_DTD,
+
+    KAT_DTh,
+    KAT_DTm,
+    KAT_DTs,
+    KAT_DTms,
+    KAT_DTus,
+    KAT_DTns,
+    KAT_DTps,
+    KAT_DTfs,
+    KAT_DTas,
 } KeysArrayType;
 
 
 KeysArrayType
-at_to_kat(int array_t) {
+at_to_kat(int array_t, PyArrayObject* a) {
     switch (array_t) {
         case NPY_INT64:
             return KAT_INT64;
@@ -101,9 +114,42 @@ at_to_kat(int array_t) {
         case NPY_STRING:
             return KAT_STRING;
 
-        case NPY_DATETIME:
-            return KAT_DT;
-
+        case NPY_DATETIME: {
+            PyArray_DatetimeMetaData* dma = (PyArray_DatetimeMetaData*)PyArray_DESCR(a)->c_metadata;
+            NPY_DATETIMEUNIT dtu = dma->base;
+            switch (dtu) {
+                case NPY_FR_Y:
+                    return KAT_DTY;
+                case NPY_FR_M:
+                    return KAT_DTM;
+                case NPY_FR_W:
+                    return KAT_DTW;
+                case NPY_FR_D:
+                    DEBUG_MSG_OBJ("got dt64 D", Py_None);
+                    return KAT_DTD;
+                case NPY_FR_h:
+                    return KAT_DTh;
+                case NPY_FR_m:
+                    return KAT_DTm;
+                case NPY_FR_s:
+                    return KAT_DTs;
+                case NPY_FR_ms:
+                    return KAT_DTms;
+                case NPY_FR_us:
+                    return KAT_DTus;
+                case NPY_FR_ns:
+                    return KAT_DTns;
+                case NPY_FR_ps:
+                    return KAT_DTps;
+                case NPY_FR_fs:
+                    return KAT_DTfs;
+                case NPY_FR_as:
+                    return KAT_DTas;
+                case NPY_FR_ERROR:
+                case NPY_FR_GENERIC:
+                    return KAT_DTY;
+            }
+        }
         default:
             return KAT_LIST;
     }
@@ -1185,9 +1231,46 @@ lookup(FAMObject *self, PyObject *key) {
         case KAT_STRING:
             table_pos = lookup_string(self, key);
             break;
-        case KAT_DT: // TODO
+        case KAT_DTY: // TODO
             table_pos = -1;
             break;
+        case KAT_DTM: // TODO
+            table_pos = -1;
+            break;
+        case KAT_DTW: // TODO
+            table_pos = -1;
+            break;
+        case KAT_DTD: // TODO
+            table_pos = -1;
+            break;
+        case KAT_DTh: // TODO
+            table_pos = -1;
+            break;
+        case KAT_DTm: // TODO
+            table_pos = -1;
+            break;
+        case KAT_DTs: // TODO
+            table_pos = -1;
+            break;
+        case KAT_DTms: // TODO
+            table_pos = -1;
+            break;
+        case KAT_DTus: // TODO
+            table_pos = -1;
+            break;
+        case KAT_DTns: // TODO
+            table_pos = -1;
+            break;
+        case KAT_DTps: // TODO
+            table_pos = -1;
+            break;
+        case KAT_DTfs: // TODO
+            table_pos = -1;
+            break;
+        case KAT_DTas: // TODO
+            table_pos = -1;
+            break;
+
         case KAT_LIST: {
             Py_hash_t hash = PyObject_Hash(key);
             if (hash == -1) {
@@ -1879,20 +1962,22 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyExc_TypeError, "Arrays must be 1-dimensional");
             return -1;
         }
+
+
         int array_t = PyArray_TYPE(a);
         keys_size = PyArray_SIZE(a);
 
         if (cls != &AMType &&
                 (PyTypeNum_ISINTEGER(array_t) // signed and unsigned
                 || PyTypeNum_ISFLOAT(array_t)
-                || PyTypeNum_ISFLEXIBLE(array_t))
-                // || array_t == NPY_DATETIME)
-            ){
+                || PyTypeNum_ISFLEXIBLE(array_t)
+                // || array_t == NPY_DATETIME
+            )){
             if ((PyArray_FLAGS(a) & NPY_ARRAY_WRITEABLE)) {
                 PyErr_Format(PyExc_TypeError, "Arrays must be immutable when given to a %s", name);
                 return -1;
             }
-            keys_array_type = at_to_kat(array_t);
+            keys_array_type = at_to_kat(array_t, a);
             Py_INCREF(keys);
         }
         else { // if an AutoMap or an array that we do not handle, create a list
@@ -1973,6 +2058,15 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
             case KAT_STRING: {
                 Py_ssize_t dt_size = PyArray_DESCR(a)->elsize;
                 INSERT_FLEXIBLE(char, insert_string, char_get_end_p);
+                break;
+            }
+            case KAT_DTY: {
+                break;
+            }
+            case KAT_DTM: {
+                break;
+            }
+            case KAT_DTD: {
                 break;
             }
         }
