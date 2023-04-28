@@ -234,6 +234,20 @@ def test_fam_copy_array_bytes_a():
 # ------------------------------------------------------------------------------
 
 
+def test_fam_array_bytes_get_a():
+    a1 = np.array((b"", b"  ", b"   ", b"    "))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    assert fam.get(b"") == 0
+    assert fam.get(b" ") == None
+    assert fam.get(b"   ") == 2
+    assert fam.get(b"    ") == 3
+
+
+# ------------------------------------------------------------------------------
+
+
 def test_fam_array_len_a():
     a1 = np.array((10, 20, 30, 40), dtype=np.int64)
     a1.flags.writeable = False
@@ -575,6 +589,17 @@ def test_fam_array_unicode_get_a():
     assert fam.get(3.2) is None
     assert fam.get("cc") is None
     assert fam.get("cccc") is None
+
+
+def test_fam_array_unicode_get_b():
+    a1 = np.array(("", "  ", "   ", "    "))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    assert fam.get("") == 0
+    assert fam.get(" ") == None
+    assert fam.get("   ") == 2
+    assert fam.get("    ") == 3
 
 
 # ------------------------------------------------------------------------------

@@ -122,26 +122,28 @@ typedef enum ViewKind{
 } ViewKind;
 
 
-// NOTE: would like to use strchr(str, '\0') instead of this routine, but some buffers might not have a null terminator and stread by full to the the dt_size.
+// Return the end pointer, or the pointer to the location after the last valid character. The end pointer minus the start pointer is the number of characters. For an empty string, all characters are NULL, and the start pointer and end pointer should be equal. NOTE: would like to use strchr(str, '\0') instead of this routine, but some buffers might not have a null terminator and stread by full to the the dt_size.
 static inline Py_UCS4*
 ucs4_get_end_p(Py_UCS4* p_start, Py_ssize_t dt_size) {
     Py_UCS4* p;
     for (p = p_start + dt_size - 1; p >= p_start; p--) {
         if (*p != '\0') {
-            return p + 1; // return 1 more than the first non-null from the right
+            return p + 1; // 1 after first non-null
         }
     }
-    return p; // p is equal to p_start
+    return p_start;
 }
 
 
 static inline char*
-char_get_end_p(char* p, Py_ssize_t dt_size) {
-    char* p_end = p + dt_size;
-    while (p < p_end && *p != '\0') {
-        p++;
+char_get_end_p(char* p_start, Py_ssize_t dt_size) {
+    char* p;
+    for (p = p_start + dt_size - 1; p >= p_start; p--) {
+        if (*p != '\0') {
+            return p + 1; // 1 after first non-null
+        }
     }
-    return p;
+    return p_start;
 }
 
 
