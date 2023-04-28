@@ -342,37 +342,112 @@ class FFFloat32(FixtureFactory):
         return array
 
 
-class FFString(FixtureFactory):
-    NAME = "string"
+def get_string_array(size: int, char_count: int, kind: str) -> str:
+    fmt = f'-<{char_count}'
+    array = np.array(
+            [f'{hex(e) * (char_count // 8)}'.format(fmt) for e in range(INT_START, INT_START + size)],
+            dtype=f'{kind}{char_count}')
+    array.flags.writeable = False
+    return array
+
+class FFU8(FixtureFactory):
+    NAME = "U8"
     SORT = 6
 
     @staticmethod
     def get_array(size: int) -> np.ndarray:
-        array = np.array([hex(e) for e in range(size)])
-        array.flags.writeable = False
-        return array
+        return get_string_array(size, 8, 'U')
 
-
-class FFString4x(FixtureFactory):
-    NAME = "string 4x"
+class FFU16(FixtureFactory):
+    NAME = "U16"
     SORT = 7
 
     @staticmethod
     def get_array(size: int) -> np.ndarray:
-        array = np.array([hex(e) * 4 for e in range(size)])
-        array.flags.writeable = False
-        return array
+        return get_string_array(size, 16, 'U')
 
 
-class FFBytes(FixtureFactory):
-    NAME = "bytes"
+class FFU32(FixtureFactory):
+    NAME = "U32"
     SORT = 8
 
     @staticmethod
     def get_array(size: int) -> np.ndarray:
-        array = np.array([bytes(hex(e), encoding="utf-8") for e in range(size)])
-        array.flags.writeable = False
-        return array
+        return get_string_array(size, 32, 'U')
+
+
+class FFU64(FixtureFactory):
+    NAME = "U64"
+    SORT = 9
+
+    @staticmethod
+    def get_array(size: int) -> np.ndarray:
+        return get_string_array(size, 64, 'U')
+
+
+class FFU128(FixtureFactory):
+    NAME = "U128"
+    SORT = 10
+
+    @staticmethod
+    def get_array(size: int) -> np.ndarray:
+        return get_string_array(size, 128, 'U')
+
+
+class FFS8(FixtureFactory):
+    NAME = "S8"
+    SORT = 11
+
+    @staticmethod
+    def get_array(size: int) -> np.ndarray:
+        return get_string_array(size, 8, 'S')
+
+class FFS16(FixtureFactory):
+    NAME = "S16"
+    SORT = 12
+
+    @staticmethod
+    def get_array(size: int) -> np.ndarray:
+        return get_string_array(size, 16, 'S')
+
+
+class FFS32(FixtureFactory):
+    NAME = "S32"
+    SORT = 13
+
+    @staticmethod
+    def get_array(size: int) -> np.ndarray:
+        return get_string_array(size, 32, 'S')
+
+
+class FFS64(FixtureFactory):
+    NAME = "S64"
+    SORT = 14
+
+    @staticmethod
+    def get_array(size: int) -> np.ndarray:
+        return get_string_array(size, 64, 'S')
+
+class FFS128(FixtureFactory):
+    NAME = "S128"
+    SORT = 15
+
+    @staticmethod
+    def get_array(size: int) -> np.ndarray:
+        return get_string_array(size, 128, 'S')
+
+
+
+
+# class FFBytes(FixtureFactory):
+#     NAME = "bytes"
+#     SORT = 8
+
+#     @staticmethod
+#     def get_array(size: int) -> np.ndarray:
+#         array = np.array([bytes(hex(e), encoding="utf-8") for e in range(INT_START, INT_START + size)])
+#         array.flags.writeable = False
+#         return array
 
 
 class FFObject(FixtureFactory):
@@ -401,14 +476,22 @@ def get_versions() -> str:
 
 
 CLS_FF = (
-    FFInt32,
-    FFInt64,
-    FFUInt32,
-    FFUInt64,
-    FFFloat64,
-    FFString,
-    # FFString4x,
-    FFBytes,
+    # FFInt32,
+    # FFInt64,
+    # FFUInt32,
+    # FFUInt64,
+    # FFFloat64,
+    FFU8,
+    FFU16,
+    FFU32,
+    FFU64,
+    FFU128,
+
+    FFS8,
+    FFS16,
+    FFS32,
+    FFS64,
+    FFS128,
     # FFObject,
 )
 FF_ORDER = [f.NAME for f in sorted(CLS_FF, key=lambda ff: ff.SORT)]
@@ -464,24 +547,33 @@ def plot_performance(frame, suffix: str = ""):
             ax.set_title(title, fontsize=6)
             ax.set_box_aspect(0.8)
             time_max = fixture["time"].max()
-            ax.set_yticks([0, time_max * 0.5, time_max])
-            ax.set_yticklabels(
-                [
+            time_min = fixture["time"].min()
+            y_ticks = [0, time_min, time_max * 0.5, time_max]
+            y_labels = [
                     "",
+                    seconds_to_display(time_min),
                     seconds_to_display(time_max * 0.5),
                     seconds_to_display(time_max),
-                ],
-                fontsize=6,
-            )
+                ]
+            if time_min > time_max * 0.25:
+                # remove the min if it is greater than quarter
+                y_ticks.pop(1)
+                y_labels.pop(1)
+
+            ax.set_yticks(y_ticks)
+            ax.set_yticklabels(y_labels, fontsize=4)
             # ax.set_xticks(x, names_display, rotation='vertical')
             ax.tick_params(
                 axis="x",
-                which="both",
                 bottom=False,
-                top=False,
                 labelbottom=False,
             )
-
+            ax.tick_params(
+                axis="y",
+                length=2,
+                width=.5,
+                pad=1,
+            )
     fig.set_size_inches(9, 3)  # width, height
     fig.legend(post, names_display, loc="center right", fontsize=6)
     # horizontal, vertical
@@ -495,7 +587,7 @@ def plot_performance(frame, suffix: str = ""):
         right=0.85,
         top=0.80,
         wspace=1.0,  # width
-        hspace=0.2,
+        hspace=0.4,
     )
     # plt.rcParams.update({'font.size': 22})
     plt.savefig(fp, dpi=300)
