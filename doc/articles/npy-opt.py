@@ -343,12 +343,17 @@ class FFFloat32(FixtureFactory):
 
 
 def get_string_array(size: int, char_count: int, kind: str) -> str:
-    fmt = f'-<{char_count}'
+    fmt = f"-<{char_count}"
     array = np.array(
-            [f'{hex(e) * (char_count // 8)}'.format(fmt) for e in range(INT_START, INT_START + size)],
-            dtype=f'{kind}{char_count}')
+        [
+            f"{hex(e) * (char_count // 8)}".format(fmt)
+            for e in range(INT_START, INT_START + size)
+        ],
+        dtype=f"{kind}{char_count}",
+    )
     array.flags.writeable = False
     return array
+
 
 class FFU8(FixtureFactory):
     NAME = "U8"
@@ -356,7 +361,8 @@ class FFU8(FixtureFactory):
 
     @staticmethod
     def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 8, 'U')
+        return get_string_array(size, 8, "U")
+
 
 class FFU16(FixtureFactory):
     NAME = "U16"
@@ -364,7 +370,7 @@ class FFU16(FixtureFactory):
 
     @staticmethod
     def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 16, 'U')
+        return get_string_array(size, 16, "U")
 
 
 class FFU32(FixtureFactory):
@@ -373,7 +379,7 @@ class FFU32(FixtureFactory):
 
     @staticmethod
     def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 32, 'U')
+        return get_string_array(size, 32, "U")
 
 
 class FFU64(FixtureFactory):
@@ -382,7 +388,7 @@ class FFU64(FixtureFactory):
 
     @staticmethod
     def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 64, 'U')
+        return get_string_array(size, 64, "U")
 
 
 class FFU128(FixtureFactory):
@@ -391,7 +397,7 @@ class FFU128(FixtureFactory):
 
     @staticmethod
     def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 128, 'U')
+        return get_string_array(size, 128, "U")
 
 
 class FFS8(FixtureFactory):
@@ -400,7 +406,8 @@ class FFS8(FixtureFactory):
 
     @staticmethod
     def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 8, 'S')
+        return get_string_array(size, 8, "S")
+
 
 class FFS16(FixtureFactory):
     NAME = "S16"
@@ -408,7 +415,7 @@ class FFS16(FixtureFactory):
 
     @staticmethod
     def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 16, 'S')
+        return get_string_array(size, 16, "S")
 
 
 class FFS32(FixtureFactory):
@@ -417,7 +424,7 @@ class FFS32(FixtureFactory):
 
     @staticmethod
     def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 32, 'S')
+        return get_string_array(size, 32, "S")
 
 
 class FFS64(FixtureFactory):
@@ -426,7 +433,8 @@ class FFS64(FixtureFactory):
 
     @staticmethod
     def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 64, 'S')
+        return get_string_array(size, 64, "S")
+
 
 class FFS128(FixtureFactory):
     NAME = "S128"
@@ -434,9 +442,7 @@ class FFS128(FixtureFactory):
 
     @staticmethod
     def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 128, 'S')
-
-
+        return get_string_array(size, 128, "S")
 
 
 # class FFBytes(FixtureFactory):
@@ -486,7 +492,6 @@ CLS_FF = (
     FFU32,
     FFU64,
     FFU128,
-
     FFS8,
     FFS16,
     FFS32,
@@ -550,11 +555,11 @@ def plot_performance(frame, suffix: str = ""):
             time_min = fixture["time"].min()
             y_ticks = [0, time_min, time_max * 0.5, time_max]
             y_labels = [
-                    "",
-                    seconds_to_display(time_min),
-                    seconds_to_display(time_max * 0.5),
-                    seconds_to_display(time_max),
-                ]
+                "",
+                seconds_to_display(time_min),
+                seconds_to_display(time_max * 0.5),
+                seconds_to_display(time_max),
+            ]
             if time_min > time_max * 0.25:
                 # remove the min if it is greater than quarter
                 y_ticks.pop(1)
@@ -571,7 +576,7 @@ def plot_performance(frame, suffix: str = ""):
             ax.tick_params(
                 axis="y",
                 length=2,
-                width=.5,
+                width=0.5,
                 pad=1,
             )
     fig.set_size_inches(9, 3)  # width, height
