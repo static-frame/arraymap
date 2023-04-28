@@ -63,6 +63,8 @@ typedef enum KeysArrayType{
 
     KAT_UNICODE,
     KAT_STRING,
+
+    KAT_DT,
 } KeysArrayType;
 
 
@@ -98,6 +100,10 @@ at_to_kat(int array_t) {
             return KAT_UNICODE;
         case NPY_STRING:
             return KAT_STRING;
+
+        case NPY_DATETIME:
+            return KAT_DT;
+
         default:
             return KAT_LIST;
     }
@@ -1179,6 +1185,9 @@ lookup(FAMObject *self, PyObject *key) {
         case KAT_STRING:
             table_pos = lookup_string(self, key);
             break;
+        case KAT_DT: // TODO
+            table_pos = -1;
+            break;
         case KAT_LIST: {
             Py_hash_t hash = PyObject_Hash(key);
             if (hash == -1) {
@@ -1379,6 +1388,8 @@ insert_string(
     return 0;
 }
 
+
+//------------------------------------------------------------------------------
 
 // Called in fam_new(), extend(), append(), with the size of observed keys. This table is updated only when append or extending. Only if there is an old table will keys be accessed Returns 0 on success, -1 on failure.
 static int
@@ -1875,6 +1886,7 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
                 (PyTypeNum_ISINTEGER(array_t) // signed and unsigned
                 || PyTypeNum_ISFLOAT(array_t)
                 || PyTypeNum_ISFLEXIBLE(array_t))
+                // || array_t == NPY_DATETIME)
             ){
             if ((PyArray_FLAGS(a) & NPY_ARRAY_WRITEABLE)) {
                 PyErr_Format(PyExc_TypeError, "Arrays must be immutable when given to a %s", name);

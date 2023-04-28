@@ -672,9 +672,14 @@ def test_fam_array_pickle_a():
     a1 = np.array(("a", "b", "c", "d"))
     a1.flags.writeable = False
     fam1 = FrozenAutoMap(a1)
-
     fam2 = pickle.loads(pickle.dumps(fam1))
 
-    # import ipdb
 
-    # ipdb.set_trace()
+# ------------------------------------------------------------------------------
+
+
+def test_fam_array_dt_get_a():
+    a1 = np.array(("2021-01", "1985-03", "1545-02"), dtype=np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    assert fam[np.datetime64("1985-03")] == 1
