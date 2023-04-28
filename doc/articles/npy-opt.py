@@ -309,9 +309,20 @@ class FFUInt64(FixtureFactory):
         return array
 
 
+class FFUInt32(FixtureFactory):
+    NAME = "uint32"
+    SORT = 3
+
+    @staticmethod
+    def get_array(size: int) -> np.ndarray:
+        array = np.arange(INT_START, INT_START + size, dtype=np.uint32)
+        array.flags.writeable = False
+        return array
+
+
 class FFFloat64(FixtureFactory):
     NAME = "float64"
-    SORT = 3
+    SORT = 4
 
     @staticmethod
     def get_array(size: int) -> np.ndarray:
@@ -322,7 +333,7 @@ class FFFloat64(FixtureFactory):
 
 class FFFloat32(FixtureFactory):
     NAME = "float32"
-    SORT = 4
+    SORT = 5
 
     @staticmethod
     def get_array(size: int) -> np.ndarray:
@@ -392,17 +403,18 @@ def get_versions() -> str:
 CLS_FF = (
     FFInt32,
     FFInt64,
+    FFUInt32,
     FFUInt64,
     FFFloat64,
     FFString,
-    FFString4x,
+    # FFString4x,
     FFBytes,
     # FFObject,
 )
 FF_ORDER = [f.NAME for f in sorted(CLS_FF, key=lambda ff: ff.SORT)]
 
 # -------------------------------------------------------------------------------
-NUMBER = 2
+NUMBER = 20
 
 from itertools import product
 
