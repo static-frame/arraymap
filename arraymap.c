@@ -81,6 +81,14 @@ typedef enum KeysArrayType{
 } KeysArrayType;
 
 
+NPY_DATETIMEUNIT
+dt_unit_from_array(PyArrayObject* a) {
+    // This is based on get_datetime_metadata_from_dtype in the NumPy source, but that function is private. This does not check that the dytpe is of the appropriate type.
+    PyArray_DatetimeMetaData* dma = &(((PyArray_DatetimeDTypeMetaData *)PyArray_DESCR(a)->c_metadata)->meta);
+    return dma->base;
+}
+
+
 KeysArrayType
 at_to_kat(int array_t, PyArrayObject* a) {
     switch (array_t) {
@@ -115,8 +123,8 @@ at_to_kat(int array_t, PyArrayObject* a) {
             return KAT_STRING;
 
         case NPY_DATETIME: {
-            PyArray_DatetimeMetaData* dma = (PyArray_DatetimeMetaData*)PyArray_DESCR(a)->c_metadata;
-            NPY_DATETIMEUNIT dtu = dma->base;
+            DEBUG_MSG_OBJ("got dt array", Py_None);
+            NPY_DATETIMEUNIT dtu = dt_unit_from_array(a);
             switch (dtu) {
                 case NPY_FR_Y:
                     return KAT_DTY;
@@ -125,7 +133,6 @@ at_to_kat(int array_t, PyArrayObject* a) {
                 case NPY_FR_W:
                     return KAT_DTW;
                 case NPY_FR_D:
-                    DEBUG_MSG_OBJ("got dt64 D", Py_None);
                     return KAT_DTD;
                 case NPY_FR_h:
                     return KAT_DTh;
@@ -147,7 +154,7 @@ at_to_kat(int array_t, PyArrayObject* a) {
                     return KAT_DTas;
                 case NPY_FR_ERROR:
                 case NPY_FR_GENERIC:
-                    return KAT_DTY;
+                    return KAT_LIST; // fall back to list
             }
         }
         default:
@@ -1971,7 +1978,7 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
                 (PyTypeNum_ISINTEGER(array_t) // signed and unsigned
                 || PyTypeNum_ISFLOAT(array_t)
                 || PyTypeNum_ISFLEXIBLE(array_t)
-                // || array_t == NPY_DATETIME
+                || array_t == NPY_DATETIME
             )){
             if ((PyArray_FLAGS(a) & NPY_ARRAY_WRITEABLE)) {
                 PyErr_Format(PyExc_TypeError, "Arrays must be immutable when given to a %s", name);
@@ -2060,13 +2067,11 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
                 INSERT_FLEXIBLE(char, insert_string, char_get_end_p);
                 break;
             }
-            case KAT_DTY: {
-                break;
-            }
-            case KAT_DTM: {
-                break;
-            }
+            case KAT_DTY:
+            case KAT_DTM:
             case KAT_DTD: {
+                INSERT_SCALARS(npy_int64, insert_int,);
+                DEBUG_MSG_OBJ("loaded as int64", Py_None);
                 break;
             }
         }
