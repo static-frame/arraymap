@@ -1782,7 +1782,7 @@ get(FAMObject *self, PyObject *key, PyObject *missing) {
 
 
 // Give an array of the same kind as KAT, lookup and load all keys_pos. Depends on self, key_size, key_array, table_pos, i, k, b
-# define GET_ALL_SCALARS(npy_type_src, npy_type_dst, lookup_func, hash_func, to_obj_func, post_deref, kat) \
+# define GET_ALL_SCALARS(npy_type_src, npy_type_dst, kat, lookup_func, hash_func, to_obj_func, post_deref) \
 {                                                                      \
     npy_type_dst v;                                                    \
     for (; i < key_size; i++) {                                        \
@@ -1886,37 +1886,37 @@ fam_get_all(FAMObject *self, PyObject *key) {
             Py_ssize_t table_pos;
             switch (key_array_t) {
                 case NPY_INT64:
-                    GET_ALL_SCALARS(npy_int64, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong, , KAT_INT64);
+                    GET_ALL_SCALARS(npy_int64, npy_int64, KAT_INT64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
                     break;
                 case NPY_INT32:
-                    GET_ALL_SCALARS(npy_int32, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong, , KAT_INT32);
+                    GET_ALL_SCALARS(npy_int32, npy_int64, KAT_INT32, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
                     break;
                 case NPY_INT16:
-                    GET_ALL_SCALARS(npy_int16, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong, , KAT_INT16);
+                    GET_ALL_SCALARS(npy_int16, npy_int64, KAT_INT16, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
                     break;
                 case NPY_INT8:
-                    GET_ALL_SCALARS(npy_int8, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong, , KAT_INT8);
+                    GET_ALL_SCALARS(npy_int8, npy_int64, KAT_INT8, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
                     break;
                 case NPY_UINT64:
-                    GET_ALL_SCALARS(npy_uint64, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong, , KAT_UINT64);
+                    GET_ALL_SCALARS(npy_uint64, npy_uint64, KAT_UINT64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong,);
                     break;
                 case NPY_UINT32:
-                    GET_ALL_SCALARS(npy_uint32, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong, , KAT_UINT32);
+                    GET_ALL_SCALARS(npy_uint32, npy_uint64, KAT_UINT32, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong,);
                     break;
                 case NPY_UINT16:
-                    GET_ALL_SCALARS(npy_uint16, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong, , KAT_UINT16);
+                    GET_ALL_SCALARS(npy_uint16, npy_uint64, KAT_UINT16, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong,);
                     break;
                 case NPY_UINT8:
-                    GET_ALL_SCALARS(npy_uint8, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong, , KAT_UINT8);
+                    GET_ALL_SCALARS(npy_uint8, npy_uint64, KAT_UINT8, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong,);
                     break;
                 case NPY_FLOAT64:
-                    GET_ALL_SCALARS(npy_double, npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble, , KAT_FLOAT64);
+                    GET_ALL_SCALARS(npy_double, npy_double, KAT_FLOAT64, lookup_hash_double, double_to_hash, PyFloat_FromDouble,);
                     break;
                 case NPY_FLOAT32:
-                    GET_ALL_SCALARS(npy_float, npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble, , KAT_FLOAT32);
+                    GET_ALL_SCALARS(npy_float, npy_double, KAT_FLOAT32, lookup_hash_double, double_to_hash, PyFloat_FromDouble,);
                     break;
                 case NPY_FLOAT16:
-                    GET_ALL_SCALARS(npy_half, npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble, npy_half_to_double, KAT_FLOAT16);
+                    GET_ALL_SCALARS(npy_half, npy_double, KAT_FLOAT16, lookup_hash_double, double_to_hash, PyFloat_FromDouble, npy_half_to_double);
                     break;
                 case NPY_UNICODE:
                     GET_ALL_FLEXIBLE(Py_UCS4, ucs4_get_end_p, lookup_hash_unicode, unicode_to_hash, PyUnicode_FromUCS4AndData);
@@ -1961,7 +1961,7 @@ fam_get_all(FAMObject *self, PyObject *key) {
 
 
 // Give an array of the same kind as KAT, lookup and load any keys_pos. Depends on self, key_size, key_array, table_pos, i, k, values
-# define GET_ANY_SCALARS(npy_type_src, npy_type_dst, lookup_func, hash_func, post_deref, kat) \
+# define GET_ANY_SCALARS(npy_type_src, npy_type_dst, kat, lookup_func, hash_func, post_deref) \
 {                                                                          \
     npy_type_dst v;                                                        \
     for (; i < key_size; i++) {                                            \
@@ -2060,37 +2060,37 @@ fam_get_any(FAMObject *self, PyObject *key) {
             Py_ssize_t table_pos;
             switch (key_array_t) {
                 case NPY_INT64:
-                    GET_ANY_SCALARS(npy_int64, npy_int64, lookup_hash_int, int_to_hash, , KAT_INT64);
+                    GET_ANY_SCALARS(npy_int64, npy_int64, KAT_INT64, lookup_hash_int, int_to_hash,);
                     break;
                 case NPY_INT32:
-                    GET_ANY_SCALARS(npy_int32, npy_int64, lookup_hash_int, int_to_hash, , KAT_INT32);
+                    GET_ANY_SCALARS(npy_int32, npy_int64, KAT_INT32, lookup_hash_int, int_to_hash,);
                     break;
                 case NPY_INT16:
-                    GET_ANY_SCALARS(npy_int16, npy_int64, lookup_hash_int, int_to_hash, , KAT_INT16);
+                    GET_ANY_SCALARS(npy_int16, npy_int64, KAT_INT16, lookup_hash_int, int_to_hash,);
                     break;
                 case NPY_INT8:
-                    GET_ANY_SCALARS(npy_int8, npy_int64, lookup_hash_int, int_to_hash, , KAT_INT8);
+                    GET_ANY_SCALARS(npy_int8, npy_int64, KAT_INT8, lookup_hash_int, int_to_hash,);
                     break;
                 case NPY_UINT64:
-                    GET_ANY_SCALARS(npy_uint64, npy_uint64, lookup_hash_uint, uint_to_hash, , KAT_UINT64);
+                    GET_ANY_SCALARS(npy_uint64, npy_uint64, KAT_UINT64, lookup_hash_uint, uint_to_hash,);
                     break;
                 case NPY_UINT32:
-                    GET_ANY_SCALARS(npy_uint32, npy_uint64, lookup_hash_uint, uint_to_hash, , KAT_UINT32);
+                    GET_ANY_SCALARS(npy_uint32, npy_uint64, KAT_UINT32, lookup_hash_uint, uint_to_hash,);
                     break;
                 case NPY_UINT16:
-                    GET_ANY_SCALARS(npy_uint16, npy_uint64, lookup_hash_uint, uint_to_hash, , KAT_UINT16);
+                    GET_ANY_SCALARS(npy_uint16, npy_uint64, KAT_UINT16, lookup_hash_uint, uint_to_hash,);
                     break;
                 case NPY_UINT8:
-                    GET_ANY_SCALARS(npy_uint8, npy_uint64, lookup_hash_uint, uint_to_hash, , KAT_UINT8);
+                    GET_ANY_SCALARS(npy_uint8, npy_uint64, KAT_UINT8, lookup_hash_uint, uint_to_hash,);
                     break;
                 case NPY_FLOAT64:
-                    GET_ANY_SCALARS(npy_double, npy_double, lookup_hash_double, double_to_hash, , KAT_FLOAT64);
+                    GET_ANY_SCALARS(npy_double, npy_double, KAT_FLOAT64, lookup_hash_double, double_to_hash,);
                     break;
                 case NPY_FLOAT32:
-                    GET_ANY_SCALARS(npy_float, npy_double, lookup_hash_double, double_to_hash, , KAT_FLOAT32);
+                    GET_ANY_SCALARS(npy_float, npy_double, KAT_FLOAT32, lookup_hash_double, double_to_hash,);
                     break;
                 case NPY_FLOAT16:
-                    GET_ANY_SCALARS(npy_half, npy_double, lookup_hash_double, double_to_hash, npy_half_to_double, KAT_FLOAT16);
+                    GET_ANY_SCALARS(npy_half, npy_double, KAT_FLOAT16, lookup_hash_double, double_to_hash, npy_half_to_double);
                     break;
                 case NPY_UNICODE:
                     GET_ANY_FLEXIBLE(Py_UCS4, ucs4_get_end_p, lookup_hash_unicode, unicode_to_hash);
