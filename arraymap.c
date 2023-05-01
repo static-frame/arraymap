@@ -78,6 +78,7 @@ typedef enum KeysArrayType{
     KAT_DTps,
     KAT_DTfs,
     KAT_DTas,
+
 } KeysArrayType;
 
 
@@ -2024,17 +2025,21 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
                 (PyTypeNum_ISINTEGER(array_t) // signed and unsigned
                 || PyTypeNum_ISFLOAT(array_t)
                 || PyTypeNum_ISFLEXIBLE(array_t)
-                || array_t == NPY_DATETIME
-            )){
+                || array_t == NPY_DATETIME ))
+            {
             if ((PyArray_FLAGS(a) & NPY_ARRAY_WRITEABLE)) {
                 PyErr_Format(PyExc_TypeError, "Arrays must be immutable when given to a %s", name);
                 return -1;
             }
+            // NOTE: this might return 0 (list) given a dt64 array without a unit
             keys_array_type = at_to_kat(array_t, a);
+        }
+
+        if (keys_array_type) { // we have a usable array
             Py_INCREF(keys);
         }
         else {
-            // keys_array_type = KAT_LIST;
+            // DEBUG_MSG_OBJ("got KAT", PyLong_FromLongLong(keys_array_type));
             // if an AutoMap or an array that we do not handle, create a list
             if (array_t == NPY_DATETIME || array_t == NPY_TIMEDELTA){
                 keys = PySequence_List(keys); // force scalars
@@ -2048,14 +2053,13 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
         }
     }
     else { // assume an arbitrary iterable
-        keys_array_type = KAT_LIST;
         keys = PySequence_List(keys);
         if (!keys) {
             return -1;
         }
         keys_size = PyList_GET_SIZE(keys);
     }
-
+    assert(keys_array_type >= 0);
     fam->keys = keys;
     fam->keys_array_type = keys_array_type;
     fam->keys_size = keys_size;

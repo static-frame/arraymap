@@ -147,12 +147,12 @@ def test_fam_constructor_array_dt64_b():
     assert fam[np.datetime64("1542")] == 0
 
 
-# def test_fam_constructor_array_dt64_c():
-#     a1 = np.array(("nat", "nat"), dtype=np.datetime64)
-#     a1.flags.writeable = False
-#     fam = FrozenAutoMap(a1)
-#     # when we get "generic" dt64 units, we load scalars in a list, and can thus support multiple NaNs
-#     assert len(fam) == 2
+def test_fam_constructor_array_dt64_c():
+    a1 = np.array(("nat", "nat"), dtype=np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    # when we get "generic" dt64 units, we load scalars in a list, and can thus support multiple NaNs
+    assert len(fam) == 2
 
 
 # ------------------------------------------------------------------------------
