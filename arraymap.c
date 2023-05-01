@@ -796,6 +796,7 @@ lookup_hash_int(FAMObject *self, npy_int64 key, Py_hash_t hash, KeysArrayType ka
 }
 
 
+// NOTE: kat is passed in separately to match the interface of lookup_hash_int.
 static Py_ssize_t
 lookup_hash_uint(FAMObject *self, npy_uint64 key, Py_hash_t hash, KeysArrayType kat)
 {
@@ -844,6 +845,7 @@ lookup_hash_uint(FAMObject *self, npy_uint64 key, Py_hash_t hash, KeysArrayType 
 }
 
 
+// NOTE: kat is passed in separately to match the interface of lookup_hash_int
 static Py_ssize_t
 lookup_hash_double(FAMObject *self, npy_double key, Py_hash_t hash, KeysArrayType kat)
 {
