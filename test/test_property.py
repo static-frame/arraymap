@@ -58,6 +58,7 @@ def get_array() -> st.SearchStrategy:
     )
 
 
+# -------------------------------------------------------------------------------
 @given(keys=hypothesis.infer)
 def test_am___len__(keys: Keys) -> None:
     assert len(AutoMap(keys)) == len(keys)
@@ -68,6 +69,7 @@ def test_fam_array___len__(keys: Keys) -> None:
     assert len(FrozenAutoMap(keys)) == len(keys)
 
 
+# -------------------------------------------------------------------------------
 @given(keys=hypothesis.infer, others=hypothesis.infer)
 def test_am___contains__(keys: Keys, others: Keys) -> None:
     a = AutoMap(keys)
@@ -85,6 +87,7 @@ def test_fam_array___contains__(keys: Keys) -> None:
         assert key in fam
 
 
+# -------------------------------------------------------------------------------
 @given(keys=hypothesis.infer, others=hypothesis.infer)
 def test_am___getitem__(keys: Keys, others: Keys) -> None:
     a = AutoMap(keys)
@@ -96,6 +99,14 @@ def test_am___getitem__(keys: Keys, others: Keys) -> None:
             a[key]
 
 
+@given(keys=get_array())
+def test_fam_array___getitem__(keys: Keys) -> None:
+    a = FrozenAutoMap(keys)
+    for index, key in enumerate(keys):
+        assert a[key] == index
+
+
+# -------------------------------------------------------------------------------
 @given(keys=hypothesis.infer)
 def test_am___hash__(keys: Keys) -> None:
     assert hash(FrozenAutoMap(keys)) == hash(FrozenAutoMap(keys))
@@ -106,6 +117,7 @@ def test_fam_array___hash__(keys: Keys) -> None:
     assert hash(FrozenAutoMap(keys)) == hash(FrozenAutoMap(keys))
 
 
+# -------------------------------------------------------------------------------
 @given(keys=hypothesis.infer)
 def test_am___iter__(keys: Keys) -> None:
     assert [*AutoMap(keys)] == [*keys]
@@ -116,6 +128,7 @@ def test_fam_array___iter__(keys: Keys) -> None:
     assert [*FrozenAutoMap(keys)] == [*keys]
 
 
+# -------------------------------------------------------------------------------
 @given(keys=hypothesis.infer)
 def test_am___reversed__(keys: Keys) -> None:
     assert [*reversed(AutoMap(keys))] == [*reversed([*keys])]
@@ -126,6 +139,7 @@ def test_fam_array___reversed__(keys: Keys) -> None:
     assert [*reversed(FrozenAutoMap(keys))] == [*reversed([*keys])]
 
 
+# -------------------------------------------------------------------------------
 @given(keys=hypothesis.infer)
 def test_am_add(keys: Keys) -> None:
     a = AutoMap()
@@ -135,6 +149,7 @@ def test_am_add(keys: Keys) -> None:
         assert a[key] == l
 
 
+# -------------------------------------------------------------------------------
 @given(keys=hypothesis.infer)
 def test_am_pickle(keys: Keys) -> None:
     try:
@@ -151,6 +166,7 @@ def test_fam_array_pickle(keys: Keys) -> None:
     assert list(pickle.loads(pickle.dumps(a))) == list(a)
 
 
+# -------------------------------------------------------------------------------
 @given(keys=hypothesis.infer)
 def test_issue_3(keys: Keys) -> None:
     hypothesis.assume(keys)
@@ -186,3 +202,82 @@ def test_fam_array_non_unique_exception(keys: Keys):
 
         with pytest.raises(NonUniqueError):
             FrozenAutoMap([*keys, duplicate])
+
+
+# -------------------------------------------------------------------------------
+@given(keys=get_array())
+def test_fam_array_get_all(keys: Keys) -> None:
+    fam = FrozenAutoMap(keys)
+    keys_list = list(keys)
+
+    post1 = fam.get_all(keys_list)
+    assert list(post1) == list(fam.values())
+
+    post2 = fam.get_all(keys)
+    assert list(post2) == list(fam.values())
+
+
+@given(keys=get_array())
+def test_fam_array_get_any(keys: Keys) -> None:
+    fam = FrozenAutoMap(keys)
+    keys_list = list(keys)
+
+    post1 = fam.get_any(keys_list)
+    assert post1 == list(fam.values())
+
+    post2 = fam.get_any(keys)
+    assert post2 == list(fam.values())
+
+
+# -------------------------------------------------------------------------------
+
+
+@given(keys=get_array())
+def test_am_array_get_all(keys: Keys) -> None:
+    fam = AutoMap(keys)
+    keys_list = list(keys)
+
+    post1 = fam.get_all(keys_list)
+    assert list(post1) == list(fam.values())
+
+    post2 = fam.get_all(keys)
+    assert list(post2) == list(fam.values())
+
+
+@given(keys=get_array())
+def test_am_array_get_any(keys: Keys) -> None:
+    fam = AutoMap(keys)
+    keys_list = list(keys)
+
+    post1 = fam.get_any(keys_list)
+    assert post1 == list(fam.values())
+
+    post2 = fam.get_any(keys)
+    assert post2 == list(fam.values())
+
+
+# -------------------------------------------------------------------------------
+
+
+@given(keys=get_array())
+def test_am_get_all(keys: Keys) -> None:
+    keys_list = list(keys)
+    fam = AutoMap(keys_list)
+
+    post1 = fam.get_all(keys_list)
+    assert list(post1) == list(fam.values())
+
+    post2 = fam.get_all(keys_list)
+    assert list(post2) == list(fam.values())
+
+
+@given(keys=get_array())
+def test_am_get_any(keys: Keys) -> None:
+    keys_list = list(keys)
+    fam = AutoMap(keys_list)
+
+    post1 = fam.get_any(keys_list)
+    assert post1 == list(fam.values())
+
+    post2 = fam.get_any(keys_list)
+    assert post2 == list(fam.values())

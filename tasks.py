@@ -18,7 +18,7 @@ def clean(context):
 
     for artifact in ("*.egg-info", "*.so", "build", "dist"):
         run(context, f"rm -rf {artifact}")
-    run(context, f"{sys.executable} -m black . --quiet")
+    run(context, f"{sys.executable} -m black --quiet .")
 
 
 @invoke.task(clean)
