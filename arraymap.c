@@ -44,6 +44,14 @@ typedef struct TableElement{
 
 const static size_t UCS4_SIZE = sizeof(Py_UCS4);
 
+
+// Partial, two-argument version of PyUnicode_FromKindAndData for consistent templating with bytes version.
+static inline PyObject*
+PyUnicode_FromUCS4AndData(const void *buffer, Py_ssize_t size) {
+    return PyUnicode_FromKindAndData(PyUnicode_4BYTE_KIND, buffer, size);
+}
+
+
 typedef enum KeysArrayType{
     KAT_LIST = 0, // must be falsy
 
@@ -103,6 +111,36 @@ at_to_kat(int array_t) {
     }
 }
 
+
+int
+kat_is_kind(KeysArrayType kat, char kind) {
+    switch (kat) {
+        case KAT_INT64:
+        case KAT_INT32:
+        case KAT_INT16:
+        case KAT_INT8:
+            return kind == 'i';
+
+        case KAT_UINT64:
+        case KAT_UINT32:
+        case KAT_UINT16:
+        case KAT_UINT8:
+            return kind == 'u';
+
+        case KAT_FLOAT64:
+        case KAT_FLOAT32:
+        case KAT_FLOAT16:
+            return kind == 'f';
+
+        case KAT_UNICODE:
+            return kind == 'U';
+        case KAT_STRING:
+            return kind == 'S';
+
+        default:
+            return 0;
+    }
+}
 
 typedef struct FAMObject{
     PyObject_VAR_HEAD
@@ -210,7 +248,7 @@ double_to_hash(double v)
 }
 
 
-// This is a "djb2" hash algorithm.
+// The `str` arg is a pointer to a C-array of Py_UCS4; we will only read `len` characters from this. This is a "djb2" hash algorithm.
 static inline Py_hash_t
 unicode_to_hash(Py_UCS4 *str, Py_ssize_t len) {
     Py_UCS4* p = str;
@@ -839,7 +877,7 @@ lookup_hash_string(
     Py_ssize_t table_pos = hash & mask;
 
     PyArrayObject *a = (PyArrayObject *)self->keys;
-    Py_ssize_t dt_size = PyArray_DESCR(a)->elsize / sizeof(char);
+    Py_ssize_t dt_size = PyArray_DESCR(a)->elsize;
     Py_ssize_t cmp_bytes = Py_MIN(key_size, dt_size);
 
     Py_hash_t h = 0;
@@ -941,8 +979,7 @@ lookup_int(FAMObject *self, PyObject* key) {
     else {
         return -1;
     }
-    Py_hash_t hash = int_to_hash(v);
-    return lookup_hash_int(self, v, hash);
+    return lookup_hash_int(self, v, int_to_hash(v));
 }
 
 
@@ -1041,8 +1078,7 @@ lookup_uint(FAMObject *self, PyObject* key) {
     else {
         return -1;
     }
-    Py_hash_t hash = uint_to_hash(v);
-    return lookup_hash_uint(self, v, hash);
+    return lookup_hash_uint(self, v, uint_to_hash(v));
 }
 
 
@@ -1106,8 +1142,7 @@ lookup_double(FAMObject *self, PyObject* key) {
         else {
             return -1;
         }
-        Py_hash_t hash = double_to_hash(v);
-        return lookup_hash_double(self, v, hash);
+        return lookup_hash_double(self, v, double_to_hash(v));
 }
 
 
@@ -1597,6 +1632,356 @@ get(FAMObject *self, PyObject *key, PyObject *missing) {
 }
 
 
+// Give an array of the same kind as KAT, lookup and load all keys_pos. Depends on self, key_size, key_array, table_pos, i, k, b
+# define GET_ALL_SCALARS(npy_type_src, npy_type_dst, lookup_func, hash_func, to_obj_func, post_deref) \
+{                                                                      \
+    npy_type_dst v;                                                    \
+    for (; i < key_size; i++) {                                        \
+        v = post_deref(*(npy_type_src*)PyArray_GETPTR1(key_array, i)); \
+        table_pos = lookup_func(self, v, hash_func(v));                \
+        if (table_pos < 0 || (self->table[table_pos].hash == -1)) {    \
+            Py_DECREF(array);                                          \
+            if (PyErr_Occurred()) {                                    \
+                return NULL;                                           \
+            }                                                          \
+            k = to_obj_func(v);                                        \
+            if (k == NULL) {                                           \
+                return NULL;                                           \
+            }                                                          \
+            PyErr_SetObject(PyExc_KeyError, k);                        \
+            Py_DECREF(k);                                              \
+            return NULL;                                               \
+        }                                                              \
+        b[i] = (npy_int64)self->table[table_pos].keys_pos;             \
+    }                                                                  \
+}                                                                      \
+
+# define GET_ALL_FLEXIBLE(char_type, get_end_func, lookup_func, hash_func, to_obj_func) \
+{                                                                             \
+    char_type* v;                                                             \
+    Py_ssize_t dt_size = PyArray_DESCR(key_array)->elsize / sizeof(char_type);\
+    Py_ssize_t k_size;                                                        \
+    for (; i < key_size; i++) {                                               \
+        v = (char_type*)PyArray_GETPTR1(key_array, i);                        \
+        k_size = get_end_func(v, dt_size) - v;                                \
+        table_pos = lookup_func(self, v, k_size, hash_func(v, k_size));       \
+        if (table_pos < 0 || (self->table[table_pos].hash == -1)) {           \
+            Py_DECREF(array);                                                 \
+            if (PyErr_Occurred()) {                                           \
+                return NULL;                                                  \
+            }                                                                 \
+            k = to_obj_func(v, k_size);                                       \
+            if (k == NULL) {                                                  \
+                return NULL;                                                  \
+            }                                                                 \
+            PyErr_SetObject(PyExc_KeyError, k);                               \
+            Py_DECREF(k);                                                     \
+            return NULL;                                                      \
+        }                                                                     \
+        b[i] = (npy_int64)self->table[table_pos].keys_pos;                    \
+    }                                                                         \
+}                                                                             \
+
+// Given a list or array of keys, return an array of the lookup-up integer values. If any unmatched keys are found, a KeyError will raise. An immutable array is always returned.
+static PyObject *
+fam_get_all(FAMObject *self, PyObject *key) {
+    Py_ssize_t key_size = 0;
+    Py_ssize_t keys_pos = -1;
+    PyObject* k = NULL;
+    PyObject *array = NULL;
+    Py_ssize_t i = 0;
+
+    int key_is_list;
+    if (PyList_CheckExact(key)) {
+        key_is_list = 1;
+        key_size = PyList_GET_SIZE(key);
+    }
+    else if (PyArray_Check(key)) {
+        key_is_list = 0;
+        key_size = PyArray_SIZE((PyArrayObject *)key);
+    }
+    else {
+        PyErr_SetString(PyExc_TypeError, "Must provide a list or array.");
+        return NULL;
+    }
+
+    // construct array to be returned
+    npy_intp dims[] = {key_size};
+    array = PyArray_EMPTY(1, dims, NPY_INT64, 0);
+    if (array == NULL) {
+        return NULL;
+    }
+    npy_int64* b = (npy_int64*)PyArray_DATA((PyArrayObject*)array);
+
+    if (key_is_list) {
+        for (; i < key_size; i++) {
+            k = PyList_GET_ITEM(key, i); // borrow
+            keys_pos = lookup(self, k);
+            if (keys_pos < 0) {
+                Py_DECREF(array);
+                if (PyErr_Occurred()) {
+                    return NULL;
+                }
+                PyErr_SetObject(PyExc_KeyError, k);
+                return NULL;
+            }
+            b[i] = (npy_int64)keys_pos;
+        }
+    }
+    else { // key is an array
+        PyArrayObject* key_array = (PyArrayObject *)key;
+        // if key is an np array of the same kind as this FAMs keys, we can do optimized lookups; otherwise, we have to go through scalar to do full branching and coercion into lookup
+        int key_array_t = PyArray_TYPE(key_array);
+
+        if (kat_is_kind(self->keys_array_type, PyArray_DESCR(key_array)->kind)) {
+            Py_ssize_t table_pos;
+            switch (key_array_t) {
+                case NPY_INT64:
+                    GET_ALL_SCALARS(npy_int64, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
+                    break;
+                case NPY_INT32:
+                    GET_ALL_SCALARS(npy_int32, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
+                    break;
+                case NPY_INT16:
+                    GET_ALL_SCALARS(npy_int16, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
+                    break;
+                case NPY_INT8:
+                    GET_ALL_SCALARS(npy_int8, npy_int64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
+                    break;
+                case NPY_UINT64:
+                    GET_ALL_SCALARS(npy_uint64, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong,);
+                    break;
+                case NPY_UINT32:
+                    GET_ALL_SCALARS(npy_uint32, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong,);
+                    break;
+                case NPY_UINT16:
+                    GET_ALL_SCALARS(npy_uint16, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong,);
+                    break;
+                case NPY_UINT8:
+                    GET_ALL_SCALARS(npy_uint8, npy_uint64, lookup_hash_uint, uint_to_hash, PyLong_FromUnsignedLongLong,);
+                    break;
+                case NPY_FLOAT64:
+                    GET_ALL_SCALARS(npy_double, npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble,);
+                    break;
+                case NPY_FLOAT32:
+                    GET_ALL_SCALARS(npy_float, npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble,);
+                    break;
+                case NPY_FLOAT16:
+                    GET_ALL_SCALARS(npy_half, npy_double, lookup_hash_double, double_to_hash, PyFloat_FromDouble, npy_half_to_double);
+                    break;
+                case NPY_UNICODE:
+                    GET_ALL_FLEXIBLE(Py_UCS4, ucs4_get_end_p, lookup_hash_unicode, unicode_to_hash, PyUnicode_FromUCS4AndData);
+                    break;
+                case NPY_STRING:
+                    GET_ALL_FLEXIBLE(char, char_get_end_p, lookup_hash_string, string_to_hash, PyBytes_FromStringAndSize);
+                    break;
+            }
+        }
+        else {
+            for (; i < key_size; i++) {
+                k = PyArray_ToScalar(PyArray_GETPTR1(key_array, i), key_array);
+                if (k == NULL) {
+                    Py_DECREF(array);
+                    return NULL;
+                }
+                keys_pos = lookup(self, k);
+                if (keys_pos < 0) {
+                    Py_DECREF(array);
+                    if (PyErr_Occurred()) {
+                        Py_DECREF(k);
+                        return NULL;
+                    }
+                    PyErr_SetObject(PyExc_KeyError, k);
+                    Py_DECREF(k);
+                    return NULL;
+                }
+                Py_DECREF(k);
+                b[i] = (npy_int64)keys_pos;
+            }
+        }
+    }
+
+    PyArray_CLEARFLAGS((PyArrayObject *)array, NPY_ARRAY_WRITEABLE);
+    return array;
+
+}
+
+
+# undef GET_ALL_SCALARS
+# undef GET_ALL_FLEXIBLE
+
+
+// Give an array of the same kind as KAT, lookup and load any keys_pos. Depends on self, key_size, key_array, table_pos, i, k, values
+# define GET_ANY_SCALARS(npy_type_src, npy_type_dst, lookup_func, hash_func, post_deref) \
+{                                                                          \
+    npy_type_dst v;                                                        \
+    for (; i < key_size; i++) {                                            \
+        v = post_deref(*(npy_type_src*)PyArray_GETPTR1(key_array, i));     \
+        table_pos = lookup_func(self, v, hash_func(v));                    \
+        if (table_pos < 0 || (self->table[table_pos].hash == -1)) {        \
+            if (PyErr_Occurred()) {                                        \
+                Py_DECREF(values);                                         \
+                return NULL;                                               \
+            }                                                              \
+            continue;                                                      \
+        }                                                                  \
+        keys_pos = self->table[table_pos].keys_pos;                        \
+        if (PyList_Append(values, PyList_GET_ITEM(int_cache, keys_pos))) { \
+            Py_DECREF(values);                                             \
+            return NULL;                                                   \
+        }                                                                  \
+    }                                                                      \
+}                                                                          \
+
+# define GET_ANY_FLEXIBLE(char_type, get_end_func, lookup_func, hash_func)    \
+{                                                                             \
+    char_type* v;                                                             \
+    Py_ssize_t dt_size = PyArray_DESCR(key_array)->elsize / sizeof(char_type);\
+    Py_ssize_t k_size;                                                        \
+    for (; i < key_size; i++) {                                               \
+        v = (char_type*)PyArray_GETPTR1(key_array, i);                        \
+        k_size = get_end_func(v, dt_size) - v;                                \
+        table_pos = lookup_func(self, v, k_size, hash_func(v, k_size));       \
+        if (table_pos < 0 || (self->table[table_pos].hash == -1)) {           \
+            if (PyErr_Occurred()) {                                           \
+                Py_DECREF(values);                                            \
+                return NULL;                                                  \
+            }                                                                 \
+            continue;                                                         \
+        }                                                                     \
+        keys_pos = self->table[table_pos].keys_pos;                           \
+        if (PyList_Append(values, PyList_GET_ITEM(int_cache, keys_pos))) {    \
+            Py_DECREF(values);                                                \
+            return NULL;                                                      \
+        }                                                                     \
+    }                                                                         \
+}                                                                             \
+
+// Given a list or array of keys, return a list of the lookup-up integer values. If any unmatched keys are found, they are ignored. A list is always returned.
+static PyObject *
+fam_get_any(FAMObject *self, PyObject *key) {
+    Py_ssize_t key_size = 0;
+    Py_ssize_t keys_pos = -1;
+    Py_ssize_t i = 0;
+    PyObject* k = NULL;
+    PyObject* values = NULL;
+
+    int key_is_list;
+    if (PyList_CheckExact(key)) {
+        key_is_list = 1;
+        key_size = PyList_GET_SIZE(key);
+    }
+    else if (PyArray_Check(key)) {
+        key_is_list = 0;
+        key_size = PyArray_SIZE((PyArrayObject *)key);
+    }
+    else {
+        PyErr_SetString(PyExc_TypeError, "Must provide a list or array.");
+        return NULL;
+    }
+
+    values = PyList_New(0);
+    if (!values) {
+        return NULL;
+    }
+
+    if (key_is_list) {
+        for (; i < key_size; i++) {
+            k = PyList_GET_ITEM(key, i); // borrow
+            keys_pos = lookup(self, k);
+            if (keys_pos < 0) {
+                if (PyErr_Occurred()) { // only exit if exception set
+                    Py_DECREF(values);
+                    return NULL;
+                }
+                continue;
+            }
+            if (PyList_Append(values, PyList_GET_ITEM(int_cache, keys_pos))) {
+                Py_DECREF(values);
+                return NULL;
+            }
+        }
+    }
+    else {
+        PyArrayObject* key_array = (PyArrayObject *)key;
+        // if key is an np array of the same kind as this FAMs keys, we can do optimized lookups; otherwise, we have to go through scalar to do full branching and coercion into lookup
+        int key_array_t = PyArray_TYPE(key_array);
+
+        if (kat_is_kind(self->keys_array_type, PyArray_DESCR(key_array)->kind)) {
+            Py_ssize_t table_pos;
+            switch (key_array_t) {
+                case NPY_INT64:
+                    GET_ANY_SCALARS(npy_int64, npy_int64, lookup_hash_int, int_to_hash,);
+                    break;
+                case NPY_INT32:
+                    GET_ANY_SCALARS(npy_int32, npy_int64, lookup_hash_int, int_to_hash,);
+                    break;
+                case NPY_INT16:
+                    GET_ANY_SCALARS(npy_int16, npy_int64, lookup_hash_int, int_to_hash,);
+                    break;
+                case NPY_INT8:
+                    GET_ANY_SCALARS(npy_int8, npy_int64, lookup_hash_int, int_to_hash,);
+                    break;
+                case NPY_UINT64:
+                    GET_ANY_SCALARS(npy_uint64, npy_uint64, lookup_hash_uint, uint_to_hash,);
+                    break;
+                case NPY_UINT32:
+                    GET_ANY_SCALARS(npy_uint32, npy_uint64, lookup_hash_uint, uint_to_hash,);
+                    break;
+                case NPY_UINT16:
+                    GET_ANY_SCALARS(npy_uint16, npy_uint64, lookup_hash_uint, uint_to_hash,);
+                    break;
+                case NPY_UINT8:
+                    GET_ANY_SCALARS(npy_uint8, npy_uint64, lookup_hash_uint, uint_to_hash,);
+                    break;
+                case NPY_FLOAT64:
+                    GET_ANY_SCALARS(npy_double, npy_double, lookup_hash_double, double_to_hash,);
+                    break;
+                case NPY_FLOAT32:
+                    GET_ANY_SCALARS(npy_float, npy_double, lookup_hash_double, double_to_hash,);
+                    break;
+                case NPY_FLOAT16:
+                    GET_ANY_SCALARS(npy_half, npy_double, lookup_hash_double, double_to_hash, npy_half_to_double);
+                    break;
+                case NPY_UNICODE:
+                    GET_ANY_FLEXIBLE(Py_UCS4, ucs4_get_end_p, lookup_hash_unicode, unicode_to_hash);
+                    break;
+                case NPY_STRING:
+                    GET_ANY_FLEXIBLE(char, char_get_end_p, lookup_hash_string, string_to_hash);
+                    break;
+            }
+        }
+        else {
+            for (; i < key_size; i++) {
+                k = PyArray_ToScalar(PyArray_GETPTR1(key_array, i), key_array);
+                if (k == NULL) {
+                    Py_DECREF(values);
+                    return NULL;
+                }
+                keys_pos = lookup(self, k);
+                Py_DECREF(k);
+                if (keys_pos < 0) {
+                    if (PyErr_Occurred()) { // only exit if exception set
+                        Py_DECREF(values);
+                        return NULL;
+                    }
+                    continue; // do not raise
+                }
+                if (PyList_Append(values, PyList_GET_ITEM(int_cache, keys_pos))) {
+                    Py_DECREF(values);
+                    return NULL;
+                }
+            }
+        }
+    }
+    return values; // might be empty
+}
+
+
+# undef GET_ANY_SCALARS
+# undef GET_ANY_FLEXIBLE
+
+
 static PyObject *
 fam_subscript(FAMObject *self, PyObject *key)
 {
@@ -1779,56 +2164,58 @@ fam_new(PyTypeObject *cls, PyObject *args, PyObject *kwargs)
 }
 
 
-// This macro can be used with integer and floating point NumPy types, given an `npy_type` and a specialized `insert_func`. Uses context of `fam_init` to get `fam`, `contiguous`, `a`, `keys_size`, and `i`. An optional `pre_insert` function can be supplied to transform extracted values before calling the appropriate insert function.
-# define INSERT_SCALARS(npy_type, insert_func, pre_insert)    \
-if (contiguous) {                                             \
-    npy_type* b = (npy_type*)PyArray_DATA(a);                 \
-    npy_type* b_end = b + keys_size;                          \
-    while (b < b_end) {                                       \
-        if (insert_func(fam, pre_insert(*b), i, -1)) {        \
-            goto error;                                       \
-        }                                                     \
-        b++;                                                  \
-        i++;                                                  \
-    }                                                         \
-}                                                             \
-else {                                                        \
-    for (; i < keys_size; i++) {                              \
-        if (insert_func(fam,                                  \
-                pre_insert(*(npy_type*)PyArray_GETPTR1(a, i)),\
-                i,                                            \
-                -1)) {                                        \
-            goto error;                                       \
-        }                                                     \
-    }                                                         \
-}                                                             \
-
+// This macro can be used with integer and floating point NumPy types, given an `npy_type` and a specialized `insert_func`. Uses context of `fam_init` to get `fam`, `contiguous`, `a`, `keys_size`, and `i`. An optional `post_deref` function can be supplied to transform extracted values before calling the appropriate insert function.
+# define INSERT_SCALARS(npy_type, insert_func, post_deref)        \
+{                                                                 \
+    if (contiguous) {                                             \
+        npy_type* b = (npy_type*)PyArray_DATA(a);                 \
+        npy_type* b_end = b + keys_size;                          \
+        while (b < b_end) {                                       \
+            if (insert_func(fam, post_deref(*b), i, -1)) {        \
+                goto error;                                       \
+            }                                                     \
+            b++;                                                  \
+            i++;                                                  \
+        }                                                         \
+    }                                                             \
+    else {                                                        \
+        for (; i < keys_size; i++) {                              \
+            if (insert_func(fam,                                  \
+                    post_deref(*(npy_type*)PyArray_GETPTR1(a, i)),\
+                    i,                                            \
+                    -1)) {                                        \
+                goto error;                                       \
+            }                                                     \
+        }                                                         \
+    }                                                             \
+}                                                                 \
 
 // This macro is for inserting flexible-sized types, Unicode (Py_UCS4) or strings (char). Uses context of `fam_init`.
-# define INSERT_FLEXIBLE(char_type, insert_func, get_end_func) \
-char_type* p = NULL;                                           \
-if (contiguous) {                                              \
-    char_type *b = (char_type*)PyArray_DATA(a);                \
-    char_type *b_end = b + keys_size * dt_size;                \
-    while (b < b_end) {                                        \
-        p = get_end_func(b, dt_size);                          \
-        if (insert_func(fam, b, p-b, i, -1)) {                 \
-            goto error;                                        \
-        }                                                      \
-        b += dt_size;                                          \
-        i++;                                                   \
-    }                                                          \
-}                                                              \
-else {                                                         \
-    for (; i < keys_size; i++) {                               \
-        char_type* v = (char_type*)PyArray_GETPTR1(a, i);      \
-        p = get_end_func(v, dt_size);                          \
-        if (insert_func(fam, v, p-v, i, -1)) {                 \
-            goto error;                                        \
-        }                                                      \
-    }                                                          \
-}                                                              \
-
+# define INSERT_FLEXIBLE(char_type, insert_func, get_end_func)     \
+{                                                                  \
+    char_type* p = NULL;                                           \
+    if (contiguous) {                                              \
+        char_type *b = (char_type*)PyArray_DATA(a);                \
+        char_type *b_end = b + keys_size * dt_size;                \
+        while (b < b_end) {                                        \
+            p = get_end_func(b, dt_size);                          \
+            if (insert_func(fam, b, p-b, i, -1)) {                 \
+                goto error;                                        \
+            }                                                      \
+            b += dt_size;                                          \
+            i++;                                                   \
+        }                                                          \
+    }                                                              \
+    else {                                                         \
+        for (; i < keys_size; i++) {                               \
+            char_type* v = (char_type*)PyArray_GETPTR1(a, i);      \
+            p = get_end_func(v, dt_size);                          \
+            if (insert_func(fam, v, p-v, i, -1)) {                 \
+                goto error;                                        \
+            }                                                      \
+        }                                                          \
+    }                                                              \
+}                                                                  \
 
 // Initialize an allocated FAMObject. Returns 0 on success, -1 on error.
 int
@@ -2036,6 +2423,8 @@ static PyMethodDef fam_methods[] = {
     {"items", (PyCFunction) fam_items, METH_NOARGS, NULL},
     {"keys", (PyCFunction) fam_keys, METH_NOARGS, NULL},
     {"values", (PyCFunction) fam_values, METH_NOARGS, NULL},
+    {"get_all", (PyCFunction) fam_get_all, METH_O, NULL},
+    {"get_any", (PyCFunction) fam_get_any, METH_O, NULL},
     {NULL},
 };
 

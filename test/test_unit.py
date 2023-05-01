@@ -697,9 +697,171 @@ def test_fam_array_pickle_a():
     a1 = np.array(("a", "b", "c", "d"))
     a1.flags.writeable = False
     fam1 = FrozenAutoMap(a1)
-
     fam2 = pickle.loads(pickle.dumps(fam1))
+    assert list(fam1.values()) == list(fam2.values())
 
-    # import ipdb
 
-    # ipdb.set_trace()
+# ------------------------------------------------------------------------------
+
+
+def test_fam_array_get_all_a():
+    a1 = np.array((1, 100, 300, 4000))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    with pytest.raises(TypeError):
+        fam.get_all((3, 3))
+
+    with pytest.raises(TypeError):
+        fam.get_all("a")
+
+    with pytest.raises(TypeError):
+        fam.get_all(None)
+
+
+def test_fam_array_get_all_b():
+    a1 = np.array((1, 100, 300, 4000))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    post1 = fam.get_all([300, 100])
+    assert post1.tolist() == [2, 1]
+    x = [y for y in post1]
+    del x
+    del post1
+    post2 = fam.get_all([4000, 4000, 4000])
+    assert post2.tolist() == [3, 3, 3]
+    x = [y for y in post2]
+    del x
+
+
+def test_fam_array_get_all_c():
+    a1 = np.array(("a", "bb", "ccc"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    with pytest.raises(KeyError):
+        fam.get_all(["bb", "c"])
+
+
+def test_fam_array_get_all_d1():
+    a1 = np.array(("a", "bb", "ccc"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    post1 = fam.get_all(np.array(("bb", "a", "ccc", "a", "bb")))
+    assert post1.tolist() == [1, 0, 2, 0, 1]
+    assert post1.flags.writeable == False
+
+
+def test_fam_array_get_all_d2():
+    a1 = np.array(("a", "bb", "ccc"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    with pytest.raises(KeyError):
+        fam.get_all(np.array(("bb", "a", "ccc", "aa")))
+
+
+def test_fam_array_get_all_e():
+    a1 = np.array((2,), dtype=np.uint64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    assert fam.get_all([2]) == [0]
+    assert fam.get_all(a1) == [0]
+
+
+def test_fam_array_get_all_f1():
+    a1 = np.array(("a", "bb", "ccc", "dd"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    post = fam.get_all(np.array(["ccc", "dd", "bb", "bb"]))
+    assert post.tolist() == [2, 3, 1, 1]
+
+
+def test_fam_array_get_all_f2():
+    a1 = np.array(("a", "bb", "ccc", "dd"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    with pytest.raises(KeyError):
+        fam.get_all(np.array(["bb", "c"]))
+
+
+def test_fam_array_get_all_g1():
+    a1 = np.array((b"a", b"bb", b"ccc", b"dd"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    post = fam.get_all(np.array([b"ccc", b"dd", b"bb", b"bb"]))
+    assert post.tolist() == [2, 3, 1, 1]
+
+
+def test_fam_array_get_all_g2():
+    a1 = np.array((b"a", b"bb", b"ccc", b"dd"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    with pytest.raises(KeyError):
+        fam.get_all(np.array([b"dd", b"x"]))
+
+
+def test_fam_array_get_all_h():
+    a1 = np.array((b"a", b""))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    post = fam.get_all(np.array([b"", b"", b"a"]))
+    assert post.tolist() == [1, 1, 0]
+
+
+def test_fam_array_get_all_i():
+    a1 = np.array((b"foo", b"bar"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    with pytest.raises(KeyError):
+        _ = fam.get_all(np.array([b"fo", b"ba"]))
+
+    with pytest.raises(KeyError):
+        _ = fam.get_all(np.array([b"", b""]))
+
+
+def test_fam_array_get_all_j():
+    a1 = np.array(("aaaaa", "bb", "ccc", "dd"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    with pytest.raises(KeyError):
+        _ = fam.get_all(np.array(["a", "b"]))
+
+    assert fam.get_all(np.array(("bb", "dd", "bb", "dd"))).tolist() == [1, 3, 1, 3]
+
+
+# -------------------------------------------------------------------------------
+
+
+def test_fam_array_get_any_a1():
+    a1 = np.array(("a", "bb", "ccc"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    post1 = fam.get_any(["bbb", "ccc", "a", "bbb"])
+    assert post1 == [2, 0]
+
+    post2 = fam.get_any(["bbb", "bbb"])
+    assert post2 == []
+
+
+def test_fam_array_get_any_a2():
+    a1 = np.array(("a", "bb", "ccc"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    post1 = fam.get_any(np.array(("bbb", "a", "ccc", "aa", "bbb")))
+    assert post1 == [0, 2]
+
+
+def test_fam_array_get_any_a3():
+    a1 = np.array(("a", "bb", "ccc"))
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    post1 = fam.get_any(np.array(["bbb", "ccc", "a", "bbb"]))
+    assert post1 == [2, 0]
+
+    post2 = fam.get_any(np.array(["bbb", "bbb"]))
+    assert post2 == []
