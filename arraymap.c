@@ -89,6 +89,15 @@ dt_unit_from_array(PyArrayObject* a) {
 }
 
 
+NPY_DATETIMEUNIT
+dt_unit_from_scalar(PyDatetimeScalarObject* dts) {
+    // Based on convert_pyobject_to_datetime and related usage in datetime.c
+    PyArray_DatetimeMetaData* dma = &(dts->obmeta);
+    return dma->base;
+}
+
+
+
 KeysArrayType
 at_to_kat(int array_t, PyArrayObject* a) {
     switch (array_t) {
@@ -123,7 +132,6 @@ at_to_kat(int array_t, PyArrayObject* a) {
             return KAT_STRING;
 
         case NPY_DATETIME: {
-            DEBUG_MSG_OBJ("got dt array", Py_None);
             NPY_DATETIMEUNIT dtu = dt_unit_from_array(a);
             switch (dtu) {
                 case NPY_FR_Y:
@@ -701,8 +709,9 @@ lookup_hash_obj(FAMObject *self, PyObject *key, Py_hash_t hash)
 }
 
 
+// Used for both integer and datetime types; for this reason kat is passed in separately.
 static Py_ssize_t
-lookup_hash_int(FAMObject *self, npy_int64 key, Py_hash_t hash)
+lookup_hash_int(FAMObject *self, npy_int64 key, Py_hash_t hash, KeysArrayType kat)
 {
     TableElement *table = self->table;
     Py_ssize_t mask = self->table_size - 1;
@@ -723,7 +732,7 @@ lookup_hash_int(FAMObject *self, npy_int64 key, Py_hash_t hash)
                 table_pos++;
                 continue;
             }
-            switch (self->keys_array_type) {
+            switch (kat) {
                 case KAT_INT64:
                     k = *(npy_int64*)PyArray_GETPTR1(a, table[table_pos].keys_pos);
                     break;
@@ -1001,7 +1010,68 @@ lookup_int(FAMObject *self, PyObject* key) {
         return -1;
     }
     Py_hash_t hash = int_to_hash(v);
-    return lookup_hash_int(self, v, hash);
+    return lookup_hash_int(self, v, hash, self->keys_array_type);
+}
+
+
+// In current usage as an AM, np.datetime64 will match to any numpy Scalar that is at or greater than the resolution of the values stored here. No matches are made to other numerics or Python datetime objects. For AM to be consistent with FAM, we will do the same for noiw.
+static Py_ssize_t
+lookup_datetime(FAMObject *self, PyObject* key) {
+    npy_int64 v = 0; // int64
+    if (PyArray_IsScalar(key, Datetime)) {
+        NPY_DATETIMEUNIT key_unit = dt_unit_from_scalar((PyDatetimeScalarObject *)key);
+        // DEBUG_MSG_OBJ("scalar unit", PyLong_FromLongLong(key_unit));
+        switch (self->keys_array_type) {
+            case KAT_DTY:
+                if (key_unit != NPY_FR_Y ) {return -1;}
+                break;
+            case KAT_DTM:
+                if (key_unit != NPY_FR_M ) {return -1;}
+                break;
+            case KAT_DTW:
+                if (key_unit != NPY_FR_W ) {return -1;}
+                break;
+            case KAT_DTD:
+                if (key_unit != NPY_FR_D ) {return -1;}
+                break;
+            case KAT_DTh:
+                if (key_unit != NPY_FR_h ) {return -1;}
+                break;
+            case KAT_DTm:
+                if (key_unit != NPY_FR_m ) {return -1;}
+                break;
+            case KAT_DTs:
+                if (key_unit != NPY_FR_s ) {return -1;}
+                break;
+            case KAT_DTms:
+                if (key_unit != NPY_FR_ms)  {return -1;}
+                break;
+            case KAT_DTus:
+                if (key_unit != NPY_FR_us)  {return -1;}
+                break;
+            case KAT_DTns:
+                if (key_unit != NPY_FR_ns)  {return -1;}
+                break;
+            case KAT_DTps:
+                if (key_unit != NPY_FR_ps)  {return -1;}
+                break;
+            case KAT_DTfs:
+                if (key_unit != NPY_FR_fs)  {return -1;}
+                break;
+            case KAT_DTas:
+                if (key_unit != NPY_FR_as)  {return -1;}
+                break;
+            default:
+                return -1;
+        }
+
+        v = (npy_int64)PyArrayScalar_VAL(key, Datetime);
+    }
+    else {
+        return -1;
+    }
+    Py_hash_t hash = int_to_hash(v);
+    return lookup_hash_int(self, v, hash, KAT_INT64);
 }
 
 
@@ -1238,46 +1308,21 @@ lookup(FAMObject *self, PyObject *key) {
         case KAT_STRING:
             table_pos = lookup_string(self, key);
             break;
-        case KAT_DTY: // TODO
-            table_pos = -1;
+        case KAT_DTY:
+        case KAT_DTM:
+        case KAT_DTW:
+        case KAT_DTD:
+        case KAT_DTh:
+        case KAT_DTm:
+        case KAT_DTs:
+        case KAT_DTms:
+        case KAT_DTus:
+        case KAT_DTns:
+        case KAT_DTps:
+        case KAT_DTfs:
+        case KAT_DTas:
+            table_pos = lookup_datetime(self, key);
             break;
-        case KAT_DTM: // TODO
-            table_pos = -1;
-            break;
-        case KAT_DTW: // TODO
-            table_pos = -1;
-            break;
-        case KAT_DTD: // TODO
-            table_pos = -1;
-            break;
-        case KAT_DTh: // TODO
-            table_pos = -1;
-            break;
-        case KAT_DTm: // TODO
-            table_pos = -1;
-            break;
-        case KAT_DTs: // TODO
-            table_pos = -1;
-            break;
-        case KAT_DTms: // TODO
-            table_pos = -1;
-            break;
-        case KAT_DTus: // TODO
-            table_pos = -1;
-            break;
-        case KAT_DTns: // TODO
-            table_pos = -1;
-            break;
-        case KAT_DTps: // TODO
-            table_pos = -1;
-            break;
-        case KAT_DTfs: // TODO
-            table_pos = -1;
-            break;
-        case KAT_DTas: // TODO
-            table_pos = -1;
-            break;
-
         case KAT_LIST: {
             Py_hash_t hash = PyObject_Hash(key);
             if (hash == -1) {
@@ -1336,8 +1381,7 @@ insert_int(
         hash = int_to_hash(key);
     }
     // table position is not dependent on keys_pos
-    Py_ssize_t table_pos = lookup_hash_int(self, key, hash);
-
+    Py_ssize_t table_pos = lookup_hash_int(self, key, hash, self->keys_array_type);
     if (table_pos < 0) {
         return -1;
     }
@@ -2069,11 +2113,19 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
             }
             case KAT_DTY:
             case KAT_DTM:
-            case KAT_DTD: {
+            case KAT_DTW:
+            case KAT_DTD:
+            case KAT_DTh:
+            case KAT_DTm:
+            case KAT_DTs:
+            case KAT_DTms:
+            case KAT_DTus:
+            case KAT_DTns:
+            case KAT_DTps:
+            case KAT_DTfs:
+            case KAT_DTas:
                 INSERT_SCALARS(npy_int64, insert_int,);
-                DEBUG_MSG_OBJ("loaded as int64", Py_None);
                 break;
-            }
         }
     }
     else {

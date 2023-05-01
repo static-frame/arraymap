@@ -123,11 +123,15 @@ def test_fam_constructor_array_float_a():
 
 
 def test_fam_constructor_array_dt64_a():
-    a1 = np.array(("2022-01", "2023-05"), dtype=np.datetime64)
+    a1 = np.array(("1970-01", "2023-05"), dtype=np.datetime64)
     a1.flags.writeable = False
     fam = FrozenAutoMap(a1)
+
     assert fam[np.datetime64("2023-05")] == 1
-    # assert np.datetime64('2022-05') in a1
+    assert fam[np.datetime64("1970-01")] == 0
+
+    with pytest.raises(KeyError):
+        fam[np.datetime64("nat")]
 
 
 # ------------------------------------------------------------------------------
