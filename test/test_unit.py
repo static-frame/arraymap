@@ -133,6 +133,27 @@ def test_fam_constructor_array_dt64_a():
     with pytest.raises(KeyError):
         fam[np.datetime64("nat")]
 
+    with pytest.raises(KeyError):
+        fam[np.datetime64("1970")]
+
+
+def test_fam_constructor_array_dt64_b():
+    a1 = np.array(("1542", "nat"), dtype=np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    assert fam[np.datetime64("nat")] == 1
+    assert fam[np.datetime64("nat", "D")] == 1
+    assert fam[np.datetime64("nat", "ns")] == 1
+    assert fam[np.datetime64("1542")] == 0
+
+
+# def test_fam_constructor_array_dt64_c():
+#     a1 = np.array(("nat", "nat"), dtype=np.datetime64)
+#     a1.flags.writeable = False
+#     fam = FrozenAutoMap(a1)
+#     # when we get "generic" dt64 units, we load scalars in a list, and can thus support multiple NaNs
+#     assert len(fam) == 2
+
 
 # ------------------------------------------------------------------------------
 
@@ -705,12 +726,3 @@ def test_fam_array_pickle_a():
 
 
 # ------------------------------------------------------------------------------
-
-
-def test_fam_array_dt_get_a():
-    a1 = np.array(("2021-01", "1985-03", "1545-02"), dtype=np.datetime64)
-    a1.flags.writeable = False
-    fam = FrozenAutoMap(a1)
-    print(fam)
-
-    # assert fam[np.datetime64("1985-03")] == 1

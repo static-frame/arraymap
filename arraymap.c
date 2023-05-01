@@ -1020,52 +1020,55 @@ lookup_datetime(FAMObject *self, PyObject* key) {
     npy_int64 v = 0; // int64
     if (PyArray_IsScalar(key, Datetime)) {
         NPY_DATETIMEUNIT key_unit = dt_unit_from_scalar((PyDatetimeScalarObject *)key);
-        // DEBUG_MSG_OBJ("scalar unit", PyLong_FromLongLong(key_unit));
-        switch (self->keys_array_type) {
-            case KAT_DTY:
-                if (key_unit != NPY_FR_Y ) {return -1;}
-                break;
-            case KAT_DTM:
-                if (key_unit != NPY_FR_M ) {return -1;}
-                break;
-            case KAT_DTW:
-                if (key_unit != NPY_FR_W ) {return -1;}
-                break;
-            case KAT_DTD:
-                if (key_unit != NPY_FR_D ) {return -1;}
-                break;
-            case KAT_DTh:
-                if (key_unit != NPY_FR_h ) {return -1;}
-                break;
-            case KAT_DTm:
-                if (key_unit != NPY_FR_m ) {return -1;}
-                break;
-            case KAT_DTs:
-                if (key_unit != NPY_FR_s ) {return -1;}
-                break;
-            case KAT_DTms:
-                if (key_unit != NPY_FR_ms)  {return -1;}
-                break;
-            case KAT_DTus:
-                if (key_unit != NPY_FR_us)  {return -1;}
-                break;
-            case KAT_DTns:
-                if (key_unit != NPY_FR_ns)  {return -1;}
-                break;
-            case KAT_DTps:
-                if (key_unit != NPY_FR_ps)  {return -1;}
-                break;
-            case KAT_DTfs:
-                if (key_unit != NPY_FR_fs)  {return -1;}
-                break;
-            case KAT_DTas:
-                if (key_unit != NPY_FR_as)  {return -1;}
-                break;
-            default:
-                return -1;
-        }
-
         v = (npy_int64)PyArrayScalar_VAL(key, Datetime);
+        // if we observe a NAT, we skip unit checks
+        if (v != NPY_DATETIME_NAT) {
+            // DEBUG_MSG_OBJ("scalar unit", PyLong_FromLongLong(key_unit));
+            switch (self->keys_array_type) {
+                case KAT_DTY:
+                    if (key_unit != NPY_FR_Y ) {return -1;}
+                    break;
+                case KAT_DTM:
+                    if (key_unit != NPY_FR_M ) {return -1;}
+                    break;
+                case KAT_DTW:
+                    if (key_unit != NPY_FR_W ) {return -1;}
+                    break;
+                case KAT_DTD:
+                    if (key_unit != NPY_FR_D ) {return -1;}
+                    break;
+                case KAT_DTh:
+                    if (key_unit != NPY_FR_h ) {return -1;}
+                    break;
+                case KAT_DTm:
+                    if (key_unit != NPY_FR_m ) {return -1;}
+                    break;
+                case KAT_DTs:
+                    if (key_unit != NPY_FR_s ) {return -1;}
+                    break;
+                case KAT_DTms:
+                    if (key_unit != NPY_FR_ms) {return -1;}
+                    break;
+                case KAT_DTus:
+                    if (key_unit != NPY_FR_us) {return -1;}
+                    break;
+                case KAT_DTns:
+                    if (key_unit != NPY_FR_ns) {return -1;}
+                    break;
+                case KAT_DTps:
+                    if (key_unit != NPY_FR_ps) {return -1;}
+                    break;
+                case KAT_DTfs:
+                    if (key_unit != NPY_FR_fs) {return -1;}
+                    break;
+                case KAT_DTas:
+                    if (key_unit != NPY_FR_as) {return -1;}
+                    break;
+                default:
+                    return -1;
+            }
+        }
+        // DEBUG_MSG_OBJ("dt64 value", PyLong_FromLongLong(v));
     }
     else {
         return -1;
@@ -1988,7 +1991,7 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
         return -1;
     }
 
-    int keys_array_type = KAT_LIST; // default, will override if necessary
+    KeysArrayType keys_array_type = KAT_LIST; // default, will override if necessary
 
     PyObject *keys = NULL;
     Py_ssize_t keys_size = 0;
@@ -2014,7 +2017,6 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
             return -1;
         }
 
-
         int array_t = PyArray_TYPE(a);
         keys_size = PyArray_SIZE(a);
 
@@ -2031,7 +2033,9 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
             keys_array_type = at_to_kat(array_t, a);
             Py_INCREF(keys);
         }
-        else { // if an AutoMap or an array that we do not handle, create a list
+        else {
+            // keys_array_type = KAT_LIST;
+            // if an AutoMap or an array that we do not handle, create a list
             if (array_t == NPY_DATETIME || array_t == NPY_TIMEDELTA){
                 keys = PySequence_List(keys); // force scalars
             }
@@ -2044,6 +2048,7 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
         }
     }
     else { // assume an arbitrary iterable
+        keys_array_type = KAT_LIST;
         keys = PySequence_List(keys);
         if (!keys) {
             return -1;
@@ -2126,6 +2131,8 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
             case KAT_DTas:
                 INSERT_SCALARS(npy_int64, insert_int,);
                 break;
+            default:
+                return -1;
         }
     }
     else {
