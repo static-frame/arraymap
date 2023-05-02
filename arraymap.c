@@ -1976,6 +1976,7 @@ fam_get_all(FAMObject *self, PyObject *key) {
                 case NPY_DATETIME: {
                     NPY_DATETIMEUNIT key_unit = dt_unit_from_array(key_array);
                     if (!kat_is_datetime_unit(self->keys_array_type, key_unit)) {
+                        PyErr_SetString(PyExc_KeyError, "datetime64 units do not match");
                         Py_DECREF(array);
                         return NULL;
                     }
@@ -2159,8 +2160,7 @@ fam_get_any(FAMObject *self, PyObject *key) {
                 case NPY_DATETIME:
                     NPY_DATETIMEUNIT key_unit = dt_unit_from_array(key_array);
                     if (!kat_is_datetime_unit(self->keys_array_type, key_unit)) {
-                        Py_DECREF(values);
-                        return NULL;
+                        return values;
                     }
                     GET_ANY_SCALARS(npy_int64, npy_int64, KAT_INT64, lookup_hash_int, int_to_hash,);
                     break;

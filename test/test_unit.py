@@ -879,6 +879,14 @@ def test_fam_array_get_all_k2():
         )
 
 
+def test_fam_array_get_all_l():
+    a1 = np.array(("2023-01-05", "1854-05-02", "1988-01-01"), np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    with pytest.raises(KeyError):
+        _ = fam.get_all(np.array(["2022-01", "2023-01", "1988-01"], np.datetime64))
+
+
 # -------------------------------------------------------------------------------
 
 
@@ -947,3 +955,12 @@ def test_fam_array_get_any_c2():
         np.array(["1854-05-02", "2023-01-05", "2020-01-05"], np.datetime64)
     )
     assert post == [1, 0]
+
+
+def test_fam_array_get_any_d():
+    a1 = np.array(("2023-01-05", "1854-05-02", "1988-01-01"), np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    post = fam.get_any(np.array(["2022-01", "2023-01", "1988-01"], np.datetime64))
+    assert post == []
