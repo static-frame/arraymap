@@ -1831,6 +1831,29 @@ get(FAMObject *self, PyObject *key, PyObject *missing) {
     }                                                                  \
 }                                                                      \
 
+# define GET_ALL_DT64(npy_type_src, npy_type_dst, kat, lookup_func, hash_func) \
+{                                                                      \
+    npy_type_dst v;                                                    \
+    for (; i < key_size; i++) {                                        \
+        v = *(npy_type_src*)PyArray_GETPTR1(key_array, i);             \
+        table_pos = lookup_func(self, v, hash_func(v), kat);           \
+        if (table_pos < 0 || (self->table[table_pos].hash == -1)) {    \
+            Py_DECREF(array);                                          \
+            if (PyErr_Occurred()) {                                    \
+                return NULL;                                           \
+            }                                                          \
+            k = PyArray_ToScalar(&v, key_array);                       \
+            if (k == NULL) {                                           \
+                return NULL;                                           \
+            }                                                          \
+            PyErr_SetObject(PyExc_KeyError, k);                        \
+            Py_DECREF(k);                                              \
+            return NULL;                                               \
+        }                                                              \
+        b[i] = (npy_int64)self->table[table_pos].keys_pos;             \
+    }                                                                  \
+}                                                                      \
+
 # define GET_ALL_FLEXIBLE(char_type, get_end_func, lookup_func, hash_func, to_obj_func) \
 {                                                                             \
     char_type* v;                                                             \
@@ -1950,14 +1973,15 @@ fam_get_all(FAMObject *self, PyObject *key) {
                 case NPY_STRING:
                     GET_ALL_FLEXIBLE(char, char_get_end_p, lookup_hash_string, string_to_hash, PyBytes_FromStringAndSize);
                     break;
-                case NPY_DATETIME:
+                case NPY_DATETIME: {
                     NPY_DATETIMEUNIT key_unit = dt_unit_from_array(key_array);
                     if (!kat_is_datetime_unit(self->keys_array_type, key_unit)) {
                         Py_DECREF(array);
                         return NULL;
                     }
-                    GET_ALL_SCALARS(npy_int64, npy_int64, KAT_INT64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
+                    GET_ALL_DT64(npy_int64, npy_int64, KAT_INT64, lookup_hash_int, int_to_hash);
                     break;
+                }
             }
         }
         else {
