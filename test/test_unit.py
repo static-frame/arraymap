@@ -888,3 +888,13 @@ def test_fam_array_get_any_a3():
 
     post2 = fam.get_any(np.array(["bbb", "bbb"]))
     assert post2 == []
+
+
+def test_fam_array_get_any_b():
+    a1 = np.array([4294967295], dtype=np.uint32)
+    a1.flags.writeable = False
+    a1_list = list(a1)
+    fam = FrozenAutoMap(a1)
+
+    post1 = fam.get_any(a1_list)
+    assert post1 == list(fam.values())
