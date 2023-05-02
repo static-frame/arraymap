@@ -2157,14 +2157,14 @@ fam_get_any(FAMObject *self, PyObject *key) {
                 case NPY_STRING:
                     GET_ANY_FLEXIBLE(char, char_get_end_p, lookup_hash_string, string_to_hash);
                     break;
-                case NPY_DATETIME:
+                case NPY_DATETIME: {
                     NPY_DATETIMEUNIT key_unit = dt_unit_from_array(key_array);
                     if (!kat_is_datetime_unit(self->keys_array_type, key_unit)) {
                         return values;
                     }
                     GET_ANY_SCALARS(npy_int64, npy_int64, KAT_INT64, lookup_hash_int, int_to_hash,);
                     break;
-
+                }
             }
         }
         else {
