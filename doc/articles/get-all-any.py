@@ -239,7 +239,7 @@ def plot_performance(frame, suffix: str = ""):
         bottom=0.05,
         right=0.8,
         top=0.80,
-        wspace=0.6,  # width
+        wspace=0.8,  # width
         hspace=0.2,
     )
     # plt.rcParams.update({'font.size': 22})

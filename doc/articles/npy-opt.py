@@ -289,8 +289,6 @@ FF_ORDER = [f.NAME for f in sorted(CLS_FF, key=lambda ff: ff.SORT)]
 # -------------------------------------------------------------------------------
 NUMBER = 2
 
-from itertools import product
-
 
 def seconds_to_display(seconds: float) -> str:
     seconds /= NUMBER
