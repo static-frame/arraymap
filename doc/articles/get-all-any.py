@@ -5,24 +5,40 @@ import typing as tp
 from typing import NamedTuple
 from itertools import repeat
 
-import arraymap
-from arraymap import AutoMap
-from arraymap import FrozenAutoMap
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+import arraymap
+from arraymap import AutoMap
+from arraymap import FrozenAutoMap
+
 sys.path.append(os.getcwd())
 
+from fixtures import (
+    PayLoad,
+    FFInt64,
+    FFInt32,
+    FFUInt64,
+    FFFloat64,
+    FFU8,
+    FFU16,
+    FFS8,
+    FFS16,
+    FFDTY,
+    FFDTD,
+    FFDTs,
+    FFDTns,
+)
 
-class PayLoad:
-    def __init__(self, array: np.ndarray):
-        self.array = array
-        self.fama = FrozenAutoMap(self.array)
-        self.sel_array = array[(np.arange(len(array)) % 2) == 0]
-        self.sel_scalar = list(self.sel_array)
-        self.sel_obj = self.sel_array.tolist()
+
+# class PayLoad:
+#     def __init__(self, array: np.ndarray):
+#         self.array = array
+#         self.fama = FrozenAutoMap(self.array)
+#         self.sel_array = array[(np.arange(len(array)) % 2) == 0]
+#         self.sel_scalar = list(self.sel_array)
+#         self.sel_obj = self.sel_array.tolist()
 
 
 class MapProcessor:
@@ -34,7 +50,6 @@ class MapProcessor:
         self.fama = pl.fama
         self.sel_array = pl.sel_array
         self.sel_scalar = pl.sel_scalar
-        self.sel_obj = pl.sel_obj
 
 
 # -------------------------------------------------------------------------------
@@ -47,13 +62,13 @@ class ListCompAllScalar(MapProcessor):
         assert len(post) == len(self.fama) // 2
 
 
-class GetAllListObj(MapProcessor):
-    NAME = "all: get all, lookup by obj list"
-    SORT = 0
+# class GetAllListObj(MapProcessor):
+#     NAME = "all: get all, lookup by obj list"
+#     SORT = 0
 
-    def __call__(self):
-        post = self.fama.get_all(self.sel_obj)
-        assert len(post) == len(self.fama) // 2
+#     def __call__(self):
+#         post = self.fama.get_all(self.sel_obj)
+#         assert len(post) == len(self.fama) // 2
 
 
 class GetAllListScalar(MapProcessor):
@@ -84,13 +99,13 @@ class ListCompAnyScalar(MapProcessor):
         assert len(post) == len(self.fama) // 2
 
 
-class GetAnyListObj(MapProcessor):
-    NAME = "any: get all, lookup by obj list"
-    SORT = 0
+# class GetAnyListObj(MapProcessor):
+#     NAME = "any: get all, lookup by obj list"
+#     SORT = 0
 
-    def __call__(self):
-        post = self.fama.get_any(self.sel_obj)
-        assert len(post) == len(self.fama) // 2
+#     def __call__(self):
+#         post = self.fama.get_any(self.sel_obj)
+#         assert len(post) == len(self.fama) // 2
 
 
 class GetAnyListScalar(MapProcessor):
@@ -112,132 +127,6 @@ class GetAnyArray(MapProcessor):
 
 
 # -------------------------------------------------------------------------------
-INT_START = 500  # avoid cached ints starting at 256
-
-
-class FixtureFactory:
-    NAME = ""
-    SORT = 0
-    CACHE = {}  # can be shared for all classes
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        raise NotImplementedError()
-
-    @classmethod
-    def get_label_array(cls, size: int) -> tp.Tuple[str, PayLoad]:
-        key = (cls, size)
-        if key not in cls.CACHE:
-            pl = PayLoad(cls.get_array(size))
-            cls.CACHE[key] = pl
-        return cls.NAME, cls.CACHE[key]
-
-
-class FFInt64(FixtureFactory):
-    NAME = "int64"
-    SORT = 0
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        array = np.arange(INT_START, INT_START + size, dtype=np.int64)
-        array.flags.writeable = False
-        return array
-
-
-class FFInt32(FixtureFactory):
-    NAME = "int32"
-    SORT = 1
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        array = np.arange(INT_START, INT_START + size, dtype=np.int32)
-        array.flags.writeable = False
-        return array
-
-
-class FFUInt64(FixtureFactory):
-    NAME = "uint64"
-    SORT = 2
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        array = np.arange(INT_START, INT_START + size, dtype=np.uint64)
-        array.flags.writeable = False
-        return array
-
-
-class FFFloat64(FixtureFactory):
-    NAME = "float64"
-    SORT = 3
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        array = (np.arange(INT_START, INT_START + size) * 0.5).astype(np.float64)
-        array.flags.writeable = False
-        return array
-
-
-class FFFloat32(FixtureFactory):
-    NAME = "float32"
-    SORT = 4
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        array = (np.arange(INT_START, INT_START + size) * 0.5).astype(np.float32)
-        array.flags.writeable = False
-        return array
-
-
-class FFString(FixtureFactory):
-    NAME = "string"
-    SORT = 6
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        array = np.array([hex(e) for e in range(size)])
-        array.flags.writeable = False
-        return array
-
-
-class FFString4x(FixtureFactory):
-    NAME = "string 4x"
-    SORT = 7
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        array = np.array([hex(e) * 4 for e in range(size)])
-        array.flags.writeable = False
-        return array
-
-
-class FFBytes(FixtureFactory):
-    NAME = "bytes"
-    SORT = 8
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        array = np.array([bytes(hex(e), encoding="utf-8") for e in range(size)])
-        array.flags.writeable = False
-        return array
-
-
-class FFObject(FixtureFactory):
-    NAME = "object"
-    SORT = 5
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        ints = np.arange(INT_START, INT_START + size)
-        array = ints.astype(object)
-
-        target = 1 == ints % 3
-        array[target] = ints[target] * 0.5
-
-        target = 2 == ints % 3
-        array[target] = np.array([hex(e) for e in ints[target]])
-
-        array.flags.writeable = False
-        return array
 
 
 def get_versions() -> str:
@@ -249,14 +138,18 @@ def get_versions() -> str:
 CLS_FF = (
     FFInt64,
     FFUInt64,
-    FFFloat64,
-    FFString,
-    FFBytes,
+    # FFFloat64,
+    FFU16,
+    FFS16,
+    FFDTY,
+    FFDTD,
+    FFDTs,
+    FFDTns,
 )
 FF_ORDER = [f.NAME for f in sorted(CLS_FF, key=lambda ff: ff.SORT)]
 
 # -------------------------------------------------------------------------------
-NUMBER = 50
+NUMBER = 2
 
 from itertools import product
 
@@ -306,22 +199,32 @@ def plot_performance(frame, suffix: str = ""):
             ax.set_title(title, fontsize=6)
             ax.set_box_aspect(0.8)
             time_max = fixture["time"].max()
-            ax.set_yticks([0, time_max * 0.5, time_max])
-            ax.set_yticklabels(
-                [
-                    "",
-                    seconds_to_display(time_max * 0.5),
-                    seconds_to_display(time_max),
-                ],
-                fontsize=6,
-            )
+            time_min = fixture["time"].min()
+            y_ticks = [0, time_min, time_max * 0.5, time_max]
+            y_labels = [
+                "",
+                seconds_to_display(time_min),
+                seconds_to_display(time_max * 0.5),
+                seconds_to_display(time_max),
+            ]
+            if time_min > time_max * 0.25:
+                # remove the min if it is greater than quarter
+                y_ticks.pop(1)
+                y_labels.pop(1)
+
+            ax.set_yticks(y_ticks)
+            ax.set_yticklabels(y_labels, fontsize=4)
             # ax.set_xticks(x, names_display, rotation='vertical')
             ax.tick_params(
                 axis="x",
-                which="both",
                 bottom=False,
-                top=False,
                 labelbottom=False,
+            )
+            ax.tick_params(
+                axis="y",
+                length=2,
+                width=0.5,
+                pad=1,
             )
 
     fig.set_size_inches(9, 4)  # width, height
@@ -379,11 +282,11 @@ if __name__ == "__main__":
 
     cls_instantiate = (
         ListCompAllScalar,
-        GetAllListObj,
+        # GetAllListObj,
         GetAllListScalar,
         GetAllArray,
         ListCompAnyScalar,
-        GetAnyListObj,
+        # GetAnyListObj,
         GetAnyListScalar,
         GetAnyArray,
     )
