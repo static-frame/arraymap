@@ -857,6 +857,28 @@ def test_fam_array_get_all_j():
     assert fam.get_all(np.array(("bb", "dd", "bb", "dd"))).tolist() == [1, 3, 1, 3]
 
 
+def test_fam_array_get_all_k1():
+    a1 = np.array(("2023-01-05", "1854-05-02"), np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    post = fam.get_all(
+        np.array(["1854-05-02", "2023-01-05", "2023-01-05"], np.datetime64)
+    )
+    assert post.tolist() == [1, 0, 0]
+
+
+def test_fam_array_get_all_k2():
+    a1 = np.array(("2023-01-05", "1854-05-02"), np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    with pytest.raises(KeyError):
+        post = fam.get_all(
+            np.array(["1854-05-02", "2023-01-05", "2020-01-05"], np.datetime64)
+        )
+
+
 # -------------------------------------------------------------------------------
 
 
@@ -901,3 +923,27 @@ def test_fam_array_get_any_b():
     assert post1 == list(fam.values())
     assert a1[0] in fam
     assert 4294967295 in fam
+
+
+def test_fam_array_get_any_c1():
+    a1 = np.array(("2023-01-05", "1854-05-02"), np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    post = fam.get_any(
+        np.array(
+            ["1854-05-02", "nat", "1854-05-02", "2023-01-05", "nat"], np.datetime64
+        )
+    )
+    assert post == [1, 1, 0]
+
+
+def test_fam_array_get_any_c2():
+    a1 = np.array(("2023-01-05", "1854-05-02"), np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    post = fam.get_any(
+        np.array(["1854-05-02", "2023-01-05", "2020-01-05"], np.datetime64)
+    )
+    assert post == [1, 0]
