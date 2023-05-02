@@ -204,9 +204,73 @@ kat_is_kind(KeysArrayType kat, char kind) {
         case KAT_STRING:
             return kind == 'S';
 
+        case KAT_DTY:
+        case KAT_DTM:
+        case KAT_DTW:
+        case KAT_DTD:
+        case KAT_DTh:
+        case KAT_DTm:
+        case KAT_DTs:
+        case KAT_DTms:
+        case KAT_DTus:
+        case KAT_DTns:
+        case KAT_DTps:
+        case KAT_DTfs:
+        case KAT_DTas:
+            return kind == 'M';
+
         default:
             return 0;
     }
+}
+
+// Given a KAT, determine if it matches a NumPy dt64 unit.
+int
+kat_is_datetime_unit(KeysArrayType kat, NPY_DATETIMEUNIT unit) {
+    switch (kat) {
+        case KAT_DTY:
+            if (unit == NPY_FR_Y ) {return 1;}
+            break;
+        case KAT_DTM:
+            if (unit == NPY_FR_M ) {return 1;}
+            break;
+        case KAT_DTW:
+            if (unit == NPY_FR_W ) {return 1;}
+            break;
+        case KAT_DTD:
+            if (unit == NPY_FR_D ) {return 1;}
+            break;
+        case KAT_DTh:
+            if (unit == NPY_FR_h ) {return 1;}
+            break;
+        case KAT_DTm:
+            if (unit == NPY_FR_m ) {return 1;}
+            break;
+        case KAT_DTs:
+            if (unit == NPY_FR_s ) {return 1;}
+            break;
+        case KAT_DTms:
+            if (unit == NPY_FR_ms) {return 1;}
+            break;
+        case KAT_DTus:
+            if (unit == NPY_FR_us) {return 1;}
+            break;
+        case KAT_DTns:
+            if (unit == NPY_FR_ns) {return 1;}
+            break;
+        case KAT_DTps:
+            if (unit == NPY_FR_ps) {return 1;}
+            break;
+        case KAT_DTfs:
+            if (unit == NPY_FR_fs) {return 1;}
+            break;
+        case KAT_DTas:
+            if (unit == NPY_FR_as) {return 1;}
+            break;
+        default: // non dt64 KATs
+            return 0;
+    }
+    return 0;
 }
 
 typedef struct FAMObject{
@@ -1059,53 +1123,13 @@ static Py_ssize_t
 lookup_datetime(FAMObject *self, PyObject* key) {
     npy_int64 v = 0; // int64
     if (PyArray_IsScalar(key, Datetime)) {
-        NPY_DATETIMEUNIT key_unit = dt_unit_from_scalar((PyDatetimeScalarObject *)key);
         v = (npy_int64)PyArrayScalar_VAL(key, Datetime);
         // if we observe a NAT, we skip unit checks
         if (v != NPY_DATETIME_NAT) {
-            // DEBUG_MSG_OBJ("scalar unit", PyLong_FromLongLong(key_unit));
-            switch (self->keys_array_type) {
-                case KAT_DTY:
-                    if (key_unit != NPY_FR_Y ) {return -1;}
-                    break;
-                case KAT_DTM:
-                    if (key_unit != NPY_FR_M ) {return -1;}
-                    break;
-                case KAT_DTW:
-                    if (key_unit != NPY_FR_W ) {return -1;}
-                    break;
-                case KAT_DTD:
-                    if (key_unit != NPY_FR_D ) {return -1;}
-                    break;
-                case KAT_DTh:
-                    if (key_unit != NPY_FR_h ) {return -1;}
-                    break;
-                case KAT_DTm:
-                    if (key_unit != NPY_FR_m ) {return -1;}
-                    break;
-                case KAT_DTs:
-                    if (key_unit != NPY_FR_s ) {return -1;}
-                    break;
-                case KAT_DTms:
-                    if (key_unit != NPY_FR_ms) {return -1;}
-                    break;
-                case KAT_DTus:
-                    if (key_unit != NPY_FR_us) {return -1;}
-                    break;
-                case KAT_DTns:
-                    if (key_unit != NPY_FR_ns) {return -1;}
-                    break;
-                case KAT_DTps:
-                    if (key_unit != NPY_FR_ps) {return -1;}
-                    break;
-                case KAT_DTfs:
-                    if (key_unit != NPY_FR_fs) {return -1;}
-                    break;
-                case KAT_DTas:
-                    if (key_unit != NPY_FR_as) {return -1;}
-                    break;
-                default:
-                    return -1;
+            NPY_DATETIMEUNIT key_unit = dt_unit_from_scalar(
+                    (PyDatetimeScalarObject *)key);
+            if (!kat_is_datetime_unit(self->keys_array_type, key_unit)) {
+                return -1;
             }
         }
         // DEBUG_MSG_OBJ("dt64 value", PyLong_FromLongLong(v));
@@ -1856,7 +1880,7 @@ fam_get_all(FAMObject *self, PyObject *key) {
         return NULL;
     }
 
-    // construct array to be returned
+    // construct array to be returned; this is a little expensive if we do not yet know if we can use it
     npy_intp dims[] = {key_size};
     array = PyArray_EMPTY(1, dims, NPY_INT64, 0);
     if (array == NULL) {
@@ -1925,6 +1949,14 @@ fam_get_all(FAMObject *self, PyObject *key) {
                     break;
                 case NPY_STRING:
                     GET_ALL_FLEXIBLE(char, char_get_end_p, lookup_hash_string, string_to_hash, PyBytes_FromStringAndSize);
+                    break;
+                case NPY_DATETIME:
+                    NPY_DATETIMEUNIT key_unit = dt_unit_from_array(key_array);
+                    if (!kat_is_datetime_unit(self->keys_array_type, key_unit)) {
+                        Py_DECREF(array);
+                        return NULL;
+                    }
+                    GET_ALL_SCALARS(npy_int64, npy_int64, KAT_INT64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
                     break;
             }
         }
