@@ -8,13 +8,22 @@ run = functools.partial(invoke.Context.run, echo=True, pty=True)
 
 @invoke.task
 def install(context):
-    run(context, f"{sys.executable} -m pip install --upgrade pip")
-    run(context, f"{sys.executable} -m pip install --upgrade -r requirements.txt")
+    run(
+        context,
+        f"{sys.executable} -m pip --disable-pip-version-check install --upgrade pip",
+    )
+    run(
+        context,
+        f"{sys.executable} -m pip --disable-pip-version-check install --upgrade -r requirements.txt",
+    )
 
 
 @invoke.task()
 def clean(context):
-    run(context, f"{sys.executable} -m pip uninstall --yes arraymap")
+    run(
+        context,
+        f"{sys.executable} -m pip --disable-pip-version-check uninstall --yes arraymap",
+    )
 
     for artifact in ("*.egg-info", "*.so", "build", "dist"):
         run(context, f"rm -rf {artifact}")
@@ -23,7 +32,7 @@ def clean(context):
 
 @invoke.task(clean)
 def build(context):
-    run(context, f"{sys.executable} -m pip -v install .")
+    run(context, f"{sys.executable} -m pip --disable-pip-version-check -v install .")
 
 
 @invoke.task(build)

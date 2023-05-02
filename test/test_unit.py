@@ -897,4 +897,7 @@ def test_fam_array_get_any_b():
     fam = FrozenAutoMap(a1)
 
     post1 = fam.get_any(a1_list)
+
     assert post1 == list(fam.values())
+    assert a1[0] in fam
+    assert 4294967295 in fam
