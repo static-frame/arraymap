@@ -36,6 +36,12 @@ ArrayMap requires the following:
 What is New in ArrayMap
 -------------------------
 
+0.1.7
+........
+
+Corrected issue when creating a ``FrozenAutoMap`` from a ``datetime64`` array that has duplicates.
+
+
 0.1.6
 ........
 
