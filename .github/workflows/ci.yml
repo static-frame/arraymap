@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macOS, Ubuntu, Windows]
+        os: [macos-12, ubuntu-20.04, windows-2022]
         minor: [7, 8]
     runs-on: ${{ matrix.os }}-latest
     steps:
@@ -53,7 +53,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macOS, Ubuntu, Windows]
+        os: [macos-12, ubuntu-20.04, windows-2022]
         minor: [9, 10, 11]
     runs-on: ${{ matrix.os }}-latest
     steps:
@@ -84,7 +84,7 @@ jobs:
         with:
           name: dist
           path: dist
-      - uses: pypa/gh-action-pypi-publish@master
+      - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_TOKEN }}
           skip_existing: true
