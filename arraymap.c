@@ -2025,7 +2025,7 @@ fam_get_all(FAMObject *self, PyObject *key) {
     npy_type_dst v;                                                        \
     for (; i < key_size; i++) {                                            \
         v = post_deref(*(npy_type_src*)PyArray_GETPTR1(key_array, i));     \
-        table_pos = lookup_func(self, v, hash_func(v), kat);                    \
+        table_pos = lookup_func(self, v, hash_func(v), kat);               \
         if (table_pos < 0 || (self->table[table_pos].hash == -1)) {        \
             if (PyErr_Occurred()) {                                        \
                 Py_DECREF(values);                                         \
