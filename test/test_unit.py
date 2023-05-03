@@ -153,6 +153,13 @@ def test_fam_constructor_array_dt64_c():
     assert len(fam) == 2
 
 
+def test_fam_constructor_array_dt64_d():
+    a1 = np.array(("2023-05", "2023-05"), dtype=np.datetime64)
+    a1.flags.writeable = False
+    with pytest.raises(NonUniqueError):
+        fam = FrozenAutoMap(a1)
+
+
 # ------------------------------------------------------------------------------
 
 
