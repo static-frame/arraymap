@@ -1440,13 +1440,14 @@ insert_int(
         FAMObject *self,
         npy_int64 key,
         Py_ssize_t keys_pos,
-        Py_hash_t hash)
+        Py_hash_t hash,
+        KeysArrayType kat)
 {
     if (hash == -1) {
         hash = int_to_hash(key);
     }
     // table position is not dependent on keys_pos
-    Py_ssize_t table_pos = lookup_hash_int(self, key, hash, self->keys_array_type);
+    Py_ssize_t table_pos = lookup_hash_int(self, key, hash, kat);
     if (table_pos < 0) {
         return -1;
     }
@@ -1470,12 +1471,13 @@ insert_uint(
         FAMObject *self,
         npy_uint64 key,
         Py_ssize_t keys_pos,
-        Py_hash_t hash)
+        Py_hash_t hash,
+        KeysArrayType kat)
 {
     if (hash == -1) {
         hash = uint_to_hash(key);
     }
-    Py_ssize_t table_pos = lookup_hash_uint(self, key, hash, self->keys_array_type);
+    Py_ssize_t table_pos = lookup_hash_uint(self, key, hash, kat);
 
     if (table_pos < 0) {
         return -1;
@@ -1500,13 +1502,14 @@ insert_double(
         FAMObject *self,
         npy_double key,
         Py_ssize_t keys_pos,
-        Py_hash_t hash)
+        Py_hash_t hash,
+        KeysArrayType kat)
 {
     if (hash == -1) {
         hash = double_to_hash(key);
     }
     // table position is not dependent on keys_pos
-    Py_ssize_t table_pos = lookup_hash_double(self, key, hash, self->keys_array_type);
+    Py_ssize_t table_pos = lookup_hash_double(self, key, hash, kat);
 
     if (table_pos < 0) {
         return -1;
@@ -2381,13 +2384,13 @@ fam_new(PyTypeObject *cls, PyObject *args, PyObject *kwargs)
 
 
 // This macro can be used with integer and floating point NumPy types, given an `npy_type` and a specialized `insert_func`. Uses context of `fam_init` to get `fam`, `contiguous`, `a`, `keys_size`, and `i`. An optional `post_deref` function can be supplied to transform extracted values before calling the appropriate insert function.
-# define INSERT_SCALARS(npy_type, insert_func, post_deref)        \
+# define INSERT_SCALARS(npy_type, insert_func, kat, post_deref)   \
 {                                                                 \
     if (contiguous) {                                             \
         npy_type* b = (npy_type*)PyArray_DATA(a);                 \
         npy_type* b_end = b + keys_size;                          \
         while (b < b_end) {                                       \
-            if (insert_func(fam, post_deref(*b), i, -1)) {        \
+            if (insert_func(fam, post_deref(*b), i, -1, kat)) {   \
                 goto error;                                       \
             }                                                     \
             b++;                                                  \
@@ -2399,7 +2402,8 @@ fam_new(PyTypeObject *cls, PyObject *args, PyObject *kwargs)
             if (insert_func(fam,                                  \
                     post_deref(*(npy_type*)PyArray_GETPTR1(a, i)),\
                     i,                                            \
-                    -1)) {                                        \
+                    -1,                                           \
+                    kat)) {                                       \
                 goto error;                                       \
             }                                                     \
         }                                                         \
@@ -2513,7 +2517,7 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
         }
         keys_size = PyList_GET_SIZE(keys);
     }
-    assert(keys_array_type >= 0);
+
     fam->keys = keys;
     fam->keys_array_type = keys_array_type;
     fam->keys_size = keys_size;
@@ -2530,37 +2534,37 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
         int contiguous = PyArray_IS_C_CONTIGUOUS(a);
         switch (keys_array_type) {
             case KAT_INT64:
-                INSERT_SCALARS(npy_int64, insert_int,);
+                INSERT_SCALARS(npy_int64, insert_int, keys_array_type,);
                 break;
             case KAT_INT32:
-                INSERT_SCALARS(npy_int32, insert_int,);
+                INSERT_SCALARS(npy_int32, insert_int, keys_array_type,);
                 break;
             case KAT_INT16:
-                INSERT_SCALARS(npy_int16, insert_int,);
+                INSERT_SCALARS(npy_int16, insert_int, keys_array_type,);
                 break;
             case KAT_INT8:
-                INSERT_SCALARS(npy_int8, insert_int,);
+                INSERT_SCALARS(npy_int8, insert_int, keys_array_type,);
                 break;
             case KAT_UINT64:
-                INSERT_SCALARS(npy_uint64, insert_uint,);
+                INSERT_SCALARS(npy_uint64, insert_uint, keys_array_type,);
                 break;
             case KAT_UINT32:
-                INSERT_SCALARS(npy_uint32, insert_uint,);
+                INSERT_SCALARS(npy_uint32, insert_uint, keys_array_type,);
                 break;
             case KAT_UINT16:
-                INSERT_SCALARS(npy_uint16, insert_uint,);
+                INSERT_SCALARS(npy_uint16, insert_uint, keys_array_type,);
                 break;
             case KAT_UINT8:
-                INSERT_SCALARS(npy_uint8, insert_uint,);
+                INSERT_SCALARS(npy_uint8, insert_uint, keys_array_type,);
                 break;
             case KAT_FLOAT64:
-                INSERT_SCALARS(npy_double, insert_double,);
+                INSERT_SCALARS(npy_double, insert_double, keys_array_type,);
                 break;
             case KAT_FLOAT32:
-                INSERT_SCALARS(npy_float, insert_double,);
+                INSERT_SCALARS(npy_float, insert_double, keys_array_type,);
                 break;
             case KAT_FLOAT16:
-                INSERT_SCALARS(npy_half, insert_double, npy_half_to_double);
+                INSERT_SCALARS(npy_half, insert_double, keys_array_type, npy_half_to_double);
                 break;
             case KAT_UNICODE: {
                 // Over allocate buffer by 1 so there is room for null at end. This buffer is only used in lookup();
@@ -2587,7 +2591,7 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
             case KAT_DTps:
             case KAT_DTfs:
             case KAT_DTas:
-                INSERT_SCALARS(npy_int64, insert_int,);
+                INSERT_SCALARS(npy_int64, insert_int, KAT_INT64,);
                 break;
             default:
                 return -1;
