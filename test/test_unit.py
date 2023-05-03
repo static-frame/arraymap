@@ -1,7 +1,5 @@
-import typing
 import pickle
 import pytest
-import sys
 import numpy as np
 
 from arraymap import AutoMap
@@ -123,11 +121,36 @@ def test_fam_constructor_array_float_a():
 
 
 def test_fam_constructor_array_dt64_a():
-    a1 = np.array(("2022-01", "2023-05"), dtype=np.datetime64)
+    a1 = np.array(("1970-01", "2023-05"), dtype=np.datetime64)
     a1.flags.writeable = False
     fam = FrozenAutoMap(a1)
+
     assert fam[np.datetime64("2023-05")] == 1
-    # assert np.datetime64('2022-05') in a1
+    assert fam[np.datetime64("1970-01")] == 0
+
+    with pytest.raises(KeyError):
+        fam[np.datetime64("nat")]
+
+    with pytest.raises(KeyError):
+        fam[np.datetime64("1970")]
+
+
+def test_fam_constructor_array_dt64_b():
+    a1 = np.array(("1542", "nat"), dtype=np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    assert fam[np.datetime64("nat")] == 1
+    assert fam[np.datetime64("nat", "D")] == 1
+    assert fam[np.datetime64("nat", "ns")] == 1
+    assert fam[np.datetime64("1542")] == 0
+
+
+def test_fam_constructor_array_dt64_c():
+    a1 = np.array(("nat", "nat"), dtype=np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    # when we get "generic" dt64 units, we load scalars in a list, and can thus support multiple NaNs
+    assert len(fam) == 2
 
 
 # ------------------------------------------------------------------------------
@@ -834,6 +857,36 @@ def test_fam_array_get_all_j():
     assert fam.get_all(np.array(("bb", "dd", "bb", "dd"))).tolist() == [1, 3, 1, 3]
 
 
+def test_fam_array_get_all_k1():
+    a1 = np.array(("2023-01-05", "1854-05-02"), np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    post = fam.get_all(
+        np.array(["1854-05-02", "2023-01-05", "2023-01-05"], np.datetime64)
+    )
+    assert post.tolist() == [1, 0, 0]
+
+
+def test_fam_array_get_all_k2():
+    a1 = np.array(("2023-01-05", "1854-05-02"), np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    with pytest.raises(KeyError):
+        post = fam.get_all(
+            np.array(["1854-05-02", "2023-01-05", "2020-01-05"], np.datetime64)
+        )
+
+
+def test_fam_array_get_all_l():
+    a1 = np.array(("2023-01-05", "1854-05-02", "1988-01-01"), np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    with pytest.raises(KeyError):
+        _ = fam.get_all(np.array(["2022-01", "2023-01", "1988-01"], np.datetime64))
+
+
 # -------------------------------------------------------------------------------
 
 
@@ -865,3 +918,48 @@ def test_fam_array_get_any_a3():
 
     post2 = fam.get_any(np.array(["bbb", "bbb"]))
     assert post2 == []
+
+
+def test_fam_array_get_any_b():
+    a1 = np.array([4294967295], dtype=np.uint32)
+    a1.flags.writeable = False
+    a1_list = list(a1)
+    fam = FrozenAutoMap(a1)
+    assert a1[0] in fam
+    assert 4294967295 in fam
+
+    post1 = fam.get_any(a1_list)
+    assert post1 == list(fam.values())
+
+
+def test_fam_array_get_any_c1():
+    a1 = np.array(("2023-01-05", "1854-05-02"), np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    post = fam.get_any(
+        np.array(
+            ["1854-05-02", "nat", "1854-05-02", "2023-01-05", "nat"], np.datetime64
+        )
+    )
+    assert post == [1, 1, 0]
+
+
+def test_fam_array_get_any_c2():
+    a1 = np.array(("2023-01-05", "1854-05-02"), np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    post = fam.get_any(
+        np.array(["1854-05-02", "2023-01-05", "2020-01-05"], np.datetime64)
+    )
+    assert post == [1, 0]
+
+
+def test_fam_array_get_any_d():
+    a1 = np.array(("2023-01-05", "1854-05-02", "1988-01-01"), np.datetime64)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+
+    post = fam.get_any(np.array(["2022-01", "2023-01", "1988-01"], np.datetime64))
+    assert post == []

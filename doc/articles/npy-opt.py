@@ -1,7 +1,6 @@
 import os
 import sys
 import timeit
-import typing as tp
 from typing import NamedTuple
 from itertools import repeat
 
@@ -15,15 +14,18 @@ import pandas as pd
 
 sys.path.append(os.getcwd())
 
-
-class PayLoad:
-    def __init__(self, array: np.ndarray):
-        self.array = array
-        self.list = array.tolist()
-        self.faml = FrozenAutoMap(self.list)
-        self.fama = FrozenAutoMap(self.array)
-        self.ama = AutoMap(self.array)
-        self.d = dict(zip(self.list, range(len(self.list))))
+from fixtures import (
+    PayLoad,
+    FFInt64,
+    FFInt32,
+    FFUInt64,
+    FFU8,
+    FFU16,
+    FFDTD,
+    FFDTY,
+    FFDTns,
+    FFDTs,
+)
 
 
 class MapProcessor:
@@ -254,227 +256,6 @@ class DictItems(MapProcessor):
             pass
 
 
-# -------------------------------------------------------------------------------
-INT_START = 500  # avoid cached ints starting at 256
-
-
-class FixtureFactory:
-    NAME = ""
-    SORT = 0
-    CACHE = {}  # can be shared for all classes
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        raise NotImplementedError()
-
-    @classmethod
-    def get_label_array(cls, size: int) -> tp.Tuple[str, PayLoad]:
-        key = (cls, size)
-        if key not in cls.CACHE:
-            pl = PayLoad(cls.get_array(size))
-            cls.CACHE[key] = pl
-        return cls.NAME, cls.CACHE[key]
-
-
-class FFInt64(FixtureFactory):
-    NAME = "int64"
-    SORT = 0
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        array = np.arange(INT_START, INT_START + size, dtype=np.int64)
-        array.flags.writeable = False
-        return array
-
-
-class FFInt32(FixtureFactory):
-    NAME = "int32"
-    SORT = 1
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        array = np.arange(INT_START, INT_START + size, dtype=np.int32)
-        array.flags.writeable = False
-        return array
-
-
-class FFUInt64(FixtureFactory):
-    NAME = "uint64"
-    SORT = 2
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        array = np.arange(INT_START, INT_START + size, dtype=np.uint64)
-        array.flags.writeable = False
-        return array
-
-
-class FFUInt32(FixtureFactory):
-    NAME = "uint32"
-    SORT = 3
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        array = np.arange(INT_START, INT_START + size, dtype=np.uint32)
-        array.flags.writeable = False
-        return array
-
-
-class FFFloat64(FixtureFactory):
-    NAME = "float64"
-    SORT = 4
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        array = (np.arange(INT_START, INT_START + size) * 0.5).astype(np.float64)
-        array.flags.writeable = False
-        return array
-
-
-class FFFloat32(FixtureFactory):
-    NAME = "float32"
-    SORT = 5
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        array = (np.arange(INT_START, INT_START + size) * 0.5).astype(np.float32)
-        array.flags.writeable = False
-        return array
-
-
-def get_string_array(size: int, char_count: int, kind: str) -> str:
-    fmt = f"-<{char_count}"
-    array = np.array(
-        [
-            f"{hex(e) * (char_count // 8)}".format(fmt)
-            for e in range(INT_START, INT_START + size)
-        ],
-        dtype=f"{kind}{char_count}",
-    )
-    array.flags.writeable = False
-    return array
-
-
-class FFU8(FixtureFactory):
-    NAME = "U8"
-    SORT = 6
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 8, "U")
-
-
-class FFU16(FixtureFactory):
-    NAME = "U16"
-    SORT = 7
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 16, "U")
-
-
-class FFU32(FixtureFactory):
-    NAME = "U32"
-    SORT = 8
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 32, "U")
-
-
-class FFU64(FixtureFactory):
-    NAME = "U64"
-    SORT = 9
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 64, "U")
-
-
-class FFU128(FixtureFactory):
-    NAME = "U128"
-    SORT = 10
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 128, "U")
-
-
-class FFS8(FixtureFactory):
-    NAME = "S8"
-    SORT = 11
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 8, "S")
-
-
-class FFS16(FixtureFactory):
-    NAME = "S16"
-    SORT = 12
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 16, "S")
-
-
-class FFS32(FixtureFactory):
-    NAME = "S32"
-    SORT = 13
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 32, "S")
-
-
-class FFS64(FixtureFactory):
-    NAME = "S64"
-    SORT = 14
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 64, "S")
-
-
-class FFS128(FixtureFactory):
-    NAME = "S128"
-    SORT = 15
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        return get_string_array(size, 128, "S")
-
-
-# class FFBytes(FixtureFactory):
-#     NAME = "bytes"
-#     SORT = 8
-
-#     @staticmethod
-#     def get_array(size: int) -> np.ndarray:
-#         array = np.array([bytes(hex(e), encoding="utf-8") for e in range(INT_START, INT_START + size)])
-#         array.flags.writeable = False
-#         return array
-
-
-class FFObject(FixtureFactory):
-    NAME = "object"
-    SORT = 5
-
-    @staticmethod
-    def get_array(size: int) -> np.ndarray:
-        ints = np.arange(INT_START, INT_START + size)
-        array = ints.astype(object)
-
-        target = 1 == ints % 3
-        array[target] = ints[target] * 0.5
-
-        target = 2 == ints % 3
-        array[target] = np.array([hex(e) for e in ints[target]])
-
-        array.flags.writeable = False
-        return array
-
-
 def get_versions() -> str:
     import platform
 
@@ -483,28 +264,30 @@ def get_versions() -> str:
 
 CLS_FF = (
     # FFInt32,
-    # FFInt64,
+    FFInt64,
     # FFUInt32,
     # FFUInt64,
     # FFFloat64,
-    FFU8,
-    FFU16,
-    FFU32,
-    FFU64,
-    FFU128,
-    FFS8,
-    FFS16,
-    FFS32,
-    FFS64,
-    FFS128,
+    # FFU8,
+    # FFU16,
+    # FFU32,
+    # FFU64,
+    # FFU128,
+    # FFS8,
+    # FFS16,
+    # FFS32,
+    # FFS64,
+    # FFS128,
     # FFObject,
+    FFDTY,
+    FFDTD,
+    FFDTs,
+    FFDTns,
 )
 FF_ORDER = [f.NAME for f in sorted(CLS_FF, key=lambda ff: ff.SORT)]
 
 # -------------------------------------------------------------------------------
-NUMBER = 20
-
-from itertools import product
+NUMBER = 2
 
 
 def seconds_to_display(seconds: float) -> str:
@@ -592,7 +375,7 @@ def plot_performance(frame, suffix: str = ""):
         right=0.85,
         top=0.80,
         wspace=1.0,  # width
-        hspace=0.4,
+        hspace=0.5,
     )
     # plt.rcParams.update({'font.size': 22})
     plt.savefig(fp, dpi=300)
