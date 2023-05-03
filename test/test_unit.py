@@ -925,14 +925,13 @@ def test_fam_array_get_any_b():
     a1.flags.writeable = False
     a1_list = list(a1)
     import sys
-    print(4294967295, a1, a1_list, file=sys.stderr)
+    print(a1, a1_list, file=sys.stderr)
     fam = FrozenAutoMap(a1)
-
-    post1 = fam.get_any(a1_list)
-
-    assert post1 == list(fam.values())
     assert a1[0] in fam
     assert 4294967295 in fam
+
+    post1 = fam.get_any(a1_list)
+    assert post1 == list(fam.values())
 
 
 def test_fam_array_get_any_c1():
