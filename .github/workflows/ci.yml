@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
-      - uses: pypa/cibuildwheel@v2.11.2
+      - uses: pypa/cibuildwheel@v2.12.3
         with:
           output-dir: dist
         env:
@@ -59,7 +59,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
-      - uses: pypa/cibuildwheel@v2.11.2
+      - uses: pypa/cibuildwheel@v2.12.3
         with:
           output-dir: dist
         env:

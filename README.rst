@@ -36,6 +36,14 @@ ArrayMap requires the following:
 What is New in ArrayMap
 -------------------------
 
+0.1.6
+........
+
+Implemented ``get_all()`` and ``get_any()`` for optimized lookup of multiple keys from arrays or lists.
+
+Implemented full support for ``np.datetime64`` arrays.
+
+
 0.1.5
 ........
 
