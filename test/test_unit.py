@@ -924,9 +924,6 @@ def test_fam_array_get_any_b():
     a1 = np.array([4294967295], dtype=np.uint32)
     a1.flags.writeable = False
     a1_list = list(a1)
-    import sys
-
-    print(a1, a1_list, file=sys.stderr)
     fam = FrozenAutoMap(a1)
     assert a1[0] in fam
     assert 4294967295 in fam

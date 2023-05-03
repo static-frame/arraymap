@@ -320,12 +320,10 @@ uint_to_hash(npy_uint64 v) {
     Py_hash_t hash = (Py_hash_t)(v & INT64_MAX);
     if (v >> 63) {
         hash = -hash;
-        if (hash == -1) {
-            return -2;
-        }
     }
-    DEBUG_MSG_OBJ("hash input", PyLong_FromUnsignedLongLong(v));
-    DEBUG_MSG_OBJ("hash output", PyLong_FromLongLong(hash));
+    if (hash == -1) { // might happen due to overflow on 32 bit systems
+        return -2;
+    }
     return hash;
 }
 
