@@ -324,6 +324,8 @@ uint_to_hash(npy_uint64 v) {
             return -2;
         }
     }
+    DEBUG_MSG_OBJ("hash input", PyLong_FromUnsignedLongLong(v));
+    DEBUG_MSG_OBJ("hash output", PyLong_FromLongLong(hash));
     return hash;
 }
 
