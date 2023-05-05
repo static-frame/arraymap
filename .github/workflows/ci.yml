@@ -29,7 +29,7 @@ jobs:
       matrix:
         os: [macos-12, ubuntu-20.04, windows-2022]
         minor: [7, 8]
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
@@ -55,7 +55,7 @@ jobs:
       matrix:
         os: [macos-12, ubuntu-20.04, windows-2022]
         minor: [9, 10, 11]
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
