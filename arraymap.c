@@ -179,24 +179,25 @@ at_to_kat(int array_t, PyArrayObject* a) {
 }
 
 
+// To determine when we can use direct array lookups, this function return 1 if we match, 0 if we do not match. Given a keys array type and the kind of lookup key, return true only for the largest KAT types.s
 int
 kat_is_kind(KeysArrayType kat, char kind) {
     switch (kat) {
         case KAT_INT64:
-        case KAT_INT32:
-        case KAT_INT16:
-        case KAT_INT8:
+        // case KAT_INT32:
+        // case KAT_INT16:
+        // case KAT_INT8:
             return kind == 'i';
 
         case KAT_UINT64:
-        case KAT_UINT32:
-        case KAT_UINT16:
-        case KAT_UINT8:
+        // case KAT_UINT32:
+        // case KAT_UINT16:
+        // case KAT_UINT8:
             return kind == 'u';
 
         case KAT_FLOAT64:
-        case KAT_FLOAT32:
-        case KAT_FLOAT16:
+        // case KAT_FLOAT32:
+        // case KAT_FLOAT16:
             return kind == 'f';
 
         case KAT_UNICODE:
@@ -1816,7 +1817,7 @@ get(FAMObject *self, PyObject *key, PyObject *missing) {
     npy_type_dst v;                                                    \
     for (; i < key_size; i++) {                                        \
         v = post_deref(*(npy_type_src*)PyArray_GETPTR1(key_array, i)); \
-        table_pos = lookup_func(self, v, hash_func(v), kat);                \
+        table_pos = lookup_func(self, v, hash_func(v), kat);           \
         if (table_pos < 0 || (self->table[table_pos].hash == -1)) {    \
             Py_DECREF(array);                                          \
             if (PyErr_Occurred()) {                                    \
@@ -1934,9 +1935,10 @@ fam_get_all(FAMObject *self, PyObject *key) {
         // if key is an np array of the same kind as this FAMs keys, we can do optimized lookups; otherwise, we have to go through scalar to do full branching and coercion into lookup
         int key_array_t = PyArray_TYPE(key_array);
 
+        // NOTE: we only match numeric kinds of the KAT is 64 bit; we could support, for each key_array_t, a switch for every KAT, but the size of that code is huge and the performance benefit is not massive
         if (kat_is_kind(self->keys_array_type, PyArray_DESCR(key_array)->kind)) {
             Py_ssize_t table_pos;
-            switch (key_array_t) {
+            switch (key_array_t) { // type of passed in array
                 case NPY_INT64:
                     GET_ALL_SCALARS(npy_int64, npy_int64, KAT_INT64, lookup_hash_int, int_to_hash, PyLong_FromLongLong,);
                     break;

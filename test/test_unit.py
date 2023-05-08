@@ -894,6 +894,35 @@ def test_fam_array_get_all_l():
         _ = fam.get_all(np.array(["2022-01", "2023-01", "1988-01"], np.datetime64))
 
 
+def test_fam_array_get_all_m1():
+    # NOTE: small than 64bit arrays in FAMs do not get optimal array lookup performance
+    a1 = np.array((1, 100, 300), dtype=np.int32)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    post1 = fam.get_all(np.array([300, 100], dtype=np.int64))
+    assert post1.tolist() == [2, 1]
+
+
+def test_fam_array_get_all_m2():
+    a1 = np.array((1, 100, 300), dtype=np.int16)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    post1 = fam.get_all(np.array([300, 100], dtype=np.int64))
+    assert post1.tolist() == [2, 1]
+
+
+def test_fam_array_get_all_m3():
+    a1 = np.array((1, 100, 30), dtype=np.int8)
+    a1.flags.writeable = False
+    fam = FrozenAutoMap(a1)
+    post1 = fam.get_all(np.array([30, 100], dtype=np.int64))
+    assert post1.tolist() == [2, 1]
+
+    post2 = fam.get_all(np.array([30, 100], dtype=np.int8))
+    assert post2.tolist() == [2, 1]
+
+
+
 # -------------------------------------------------------------------------------
 
 
