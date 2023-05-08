@@ -36,6 +36,12 @@ ArrayMap requires the following:
 What is New in ArrayMap
 -------------------------
 
+0.1.8
+........
+
+Corrected issue when using ``get_all()`` and ``get_any()`` on ``FrozenAutoMap`` backed by numerical arrays with less than 64-bit element size.
+
+
 0.1.7
 ........
 
