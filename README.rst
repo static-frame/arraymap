@@ -36,6 +36,12 @@ ArrayMap requires the following:
 What is New in ArrayMap
 -------------------------
 
+0.1.9
+........
+
+Improvements to ``PyObject`` struct layout and other internal refactoring.
+
+
 0.1.8
 ........
 
