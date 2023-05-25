@@ -1606,7 +1606,6 @@ grow_table(FAMObject *self, Py_ssize_t keys_size)
             PyErr_SetString(PyExc_NotImplementedError, "Cannot grow table for array keys");
             goto restore;
         }
-
         Py_ssize_t i;
         Py_hash_t h;
         for (table_pos = 0; table_pos < size_old + SCAN - 1; table_pos++) {
@@ -2351,7 +2350,6 @@ fam_new(PyTypeObject *cls, PyObject *args, PyObject *kwargs)
     self->keys = NULL;
     self->key_buffer = NULL;
     self->keys_size = 0;
-
     return (PyObject*)self;
 }
 
