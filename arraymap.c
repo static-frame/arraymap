@@ -1,8 +1,8 @@
 // For background on the hashtable design first implemented in AutoMap, see the following:
 // https://github.com/brandtbucher/automap/blob/b787199d38d6bfa1b55484e5ea1e89b31cc1fa72/automap.c#L12
-
-
 # include <math.h>
+# include "stdbool.h"
+
 # define PY_SSIZE_T_CLEAN
 # include "Python.h"
 
@@ -478,7 +478,7 @@ static void
 fami_dealloc(FAMIObject *self)
 {
     Py_DECREF(self->fam);
-    Py_TYPE(self)->tp_free((PyObject *)self);
+    PyObject_Del((PyObject *)self);
 }
 
 
@@ -545,7 +545,7 @@ fami_iternext(FAMIObject *self)
 
 
 static PyObject *
-fami___length_hint__(FAMIObject *self)
+fami_length_hint(FAMIObject *self)
 {
     Py_ssize_t len = Py_MAX(0, self->fam->keys_size - self->index);
     return PyLong_FromSsize_t(len);
@@ -556,15 +556,15 @@ static PyObject *fami_new(FAMObject *, ViewKind, int);
 
 
 static PyObject *
-fami___reversed__(FAMIObject *self)
+fami_reversed(FAMIObject *self)
 {
     return fami_new(self->fam, self->kind, !self->reversed);
 }
 
 
 static PyMethodDef fami_methods[] = {
-    {"__length_hint__", (PyCFunction)fami___length_hint__, METH_NOARGS, NULL},
-    {"__reversed__", (PyCFunction)fami___reversed__, METH_NOARGS, NULL},
+    {"__length_hint__", (PyCFunction)fami_length_hint, METH_NOARGS, NULL},
+    {"__reversed__", (PyCFunction)fami_reversed, METH_NOARGS, NULL},
     {NULL},
 };
 
@@ -676,7 +676,7 @@ static void
 famv_dealloc(FAMVObject *self)
 {
     Py_DECREF(self->fam);
-    Py_TYPE(self)->tp_free((PyObject *)self);
+    PyObject_Del((PyObject *)self);
 }
 
 
@@ -688,14 +688,14 @@ famv_fami_new(FAMVObject *self)
 
 
 static PyObject *
-famv___length_hint__(FAMVObject *self)
+famv_length_hint(FAMVObject *self)
 {
     return PyLong_FromSsize_t(self->fam->keys_size);
 }
 
 
 static PyObject *
-famv___reversed__(FAMVObject *self)
+famv_reversed(FAMVObject *self)
 {
     return fami_new(self->fam, self->kind, 1);
 }
@@ -734,8 +734,8 @@ famv_richcompare(FAMVObject *self, PyObject *other, int op)
 
 
 static PyMethodDef famv_methods[] = {
-    {"__length_hint__", (PyCFunction) famv___length_hint__, METH_NOARGS, NULL},
-    {"__reversed__", (PyCFunction) famv___reversed__, METH_NOARGS, NULL},
+    {"__length_hint__", (PyCFunction) famv_length_hint, METH_NOARGS, NULL},
+    {"__reversed__", (PyCFunction) famv_reversed, METH_NOARGS, NULL},
     {"isdisjoint", (PyCFunction) famv_isdisjoint, METH_O, NULL},
     {NULL},
 };
@@ -2302,21 +2302,21 @@ fam_iter(FAMObject *self)
 
 
 static PyObject *
-fam___getnewargs__(FAMObject *self)
+fam_getnewargs(FAMObject *self)
 {
     return PyTuple_Pack(1, self->keys);
 }
 
 
 static PyObject *
-fam___reversed__(FAMObject *self)
+fam_reversed(FAMObject *self)
 {
     return fami_new(self, KEYS, 1);
 }
 
 
 static PyObject *
-fam___sizeof__(FAMObject *self)
+fam_sizeof(FAMObject *self)
 {
     PyObject *listsizeof = PyObject_CallMethod(self->keys, "__sizeof__", NULL);
     if (!listsizeof) {
@@ -2635,7 +2635,7 @@ fam_richcompare(FAMObject *self, PyObject *other, int op)
 
 
 static PyObject*
-fam___getstate__(FAMObject *self)
+fam_getstate(FAMObject *self)
 {
     PyObject* state = PyTuple_Pack(1, self->keys);
     return state;
@@ -2644,7 +2644,7 @@ fam___getstate__(FAMObject *self)
 
 // State returned here is a tuple of keys, suitable for usage as an `args` argument.
 static PyObject*
-fam___setstate__(FAMObject *self, PyObject *state)
+fam_setstate(FAMObject *self, PyObject *state)
 {
     if (!PyTuple_CheckExact(state) || !PyTuple_GET_SIZE(state)) {
         PyErr_SetString(PyExc_ValueError, "Unexpected pickled object.");
@@ -2661,11 +2661,11 @@ fam___setstate__(FAMObject *self, PyObject *state)
 
 
 static PyMethodDef fam_methods[] = {
-    {"__getnewargs__", (PyCFunction) fam___getnewargs__, METH_NOARGS, NULL},
-    {"__reversed__", (PyCFunction) fam___reversed__, METH_NOARGS, NULL},
-    {"__sizeof__", (PyCFunction) fam___sizeof__, METH_NOARGS, NULL},
-    {"__getstate__", (PyCFunction) fam___getstate__, METH_NOARGS, NULL},
-    {"__setstate__", (PyCFunction) fam___setstate__, METH_O, NULL},
+    {"__getnewargs__", (PyCFunction) fam_getnewargs, METH_NOARGS, NULL},
+    {"__reversed__", (PyCFunction) fam_reversed, METH_NOARGS, NULL},
+    {"__sizeof__", (PyCFunction) fam_sizeof, METH_NOARGS, NULL},
+    {"__getstate__", (PyCFunction) fam_getstate, METH_NOARGS, NULL},
+    {"__setstate__", (PyCFunction) fam_setstate, METH_O, NULL},
     {"get", (PyCFunction) fam_get, METH_VARARGS, NULL},
     {"items", (PyCFunction) fam_items, METH_NOARGS, NULL},
     {"keys", (PyCFunction) fam_keys, METH_NOARGS, NULL},
