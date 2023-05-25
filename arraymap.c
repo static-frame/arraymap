@@ -275,7 +275,7 @@ kat_is_datetime_unit(KeysArrayType kat, NPY_DATETIMEUNIT unit) {
 }
 
 typedef struct FAMObject{
-    PyObject_VAR_HEAD
+    PyObject_HEAD
     Py_ssize_t table_size;
     TableElement *table;    // an array of TableElement structs
     PyObject *keys;
@@ -465,7 +465,7 @@ int_cache_remove(Py_ssize_t key_count)
 // FrozenAutoMapIterator functions
 
 typedef struct FAMIObject {
-    PyObject_VAR_HEAD
+    PyObject_HEAD
     FAMObject *fam;
     PyArrayObject* keys_array;
     ViewKind kind;
@@ -606,7 +606,7 @@ fami_new(FAMObject *fam, ViewKind kind, int reversed)
 
 // A FAMVObject contains a reference to the FAM from which it was derived
 typedef struct FAMVObject{
-    PyObject_VAR_HEAD
+    PyObject_HEAD
     FAMObject *fam;
     ViewKind kind;
 } FAMVObject;
