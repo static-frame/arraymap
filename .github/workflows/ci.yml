@@ -75,7 +75,7 @@ jobs:
           path: dist
 
   forward:
-    name: Build / ${{ matrix.os }} / Python 3.${{ matrix.minor }}
+    name: Forward / ${{ matrix.os }} / Python 3.${{ matrix.minor }}
     strategy:
       fail-fast: false
       matrix:
