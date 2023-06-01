@@ -1,5 +1,5 @@
 import pickle
-import typing
+import typing as tp
 from functools import partial
 import sys
 import warnings
@@ -17,7 +17,7 @@ from arraymap import AutoMap
 from arraymap import FrozenAutoMap
 from arraymap import NonUniqueError
 
-Keys = typing.Set[typing.Hashable]
+Keys = tp.Set[tp.Union[int, str, float, bool, bytes, tp.Tuple[int, ...]]]
 
 NATIVE_BYTE_ORDER = "<" if sys.byteorder == "little" else ">"
 VALID_BYTE_ORDERS = ("=", NATIVE_BYTE_ORDER)
