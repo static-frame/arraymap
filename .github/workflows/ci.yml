@@ -28,19 +28,33 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-12, ubuntu-22.04, windows-2022]
+<<<<<<< HEAD
         minor: [8]
+=======
+        minor: [7, 8]
+>>>>>>> master
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
+<<<<<<< HEAD
       - uses: pypa/cibuildwheel@v2.16.2
+=======
+      - uses: pypa/cibuildwheel@v2.13.0
+>>>>>>> master
         with:
           output-dir: dist
         env:
           CIBW_BUILD: cp3${{ matrix.minor }}-*
+<<<<<<< HEAD
           CIBW_ARCHS_MACOS: x86_64 universal2 arm64
           CIBW_BEFORE_BUILD: pip install -r {project}/requirements-build-3_08.txt
           CIBW_BEFORE_TEST: pip install -r {project}/requirements-dev-3_08.txt
+=======
+          CIBW_ARCHS_MACOS: all
+          CIBW_BEFORE_BUILD: pip install -r {project}/requirements-build-backward.txt
+          CIBW_BEFORE_TEST: pip install -r {project}/requirements-test-backward.txt
+>>>>>>> master
           CIBW_TEST_COMMAND: pytest {project}
 
       - uses: actions/upload-artifact@v3
@@ -59,11 +73,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
+<<<<<<< HEAD
       - uses: pypa/cibuildwheel@v2.16.2
+=======
+      - uses: pypa/cibuildwheel@v2.13.0
+>>>>>>> master
         with:
           output-dir: dist
         env:
           CIBW_BUILD: cp3${{ matrix.minor }}-*
+<<<<<<< HEAD
           CIBW_ARCHS_MACOS: x86_64 universal2 arm64
           CIBW_BEFORE_BUILD: pip install -r {project}/requirements-build-3_11.txt
           CIBW_BEFORE_TEST: pip install -r {project}/requirements-dev-3_11.txt
@@ -93,6 +112,11 @@ jobs:
           CIBW_ARCHS_MACOS: x86_64 universal2 arm64
           CIBW_BEFORE_BUILD: pip install -r {project}/requirements-build-3_12.txt
           CIBW_BEFORE_TEST: pip install -r {project}/requirements-dev-3_12.txt
+=======
+          CIBW_ARCHS_MACOS: all
+          CIBW_BEFORE_BUILD: pip install -r {project}/requirements-build.txt
+          CIBW_BEFORE_TEST: pip install -r {project}/requirements-test.txt
+>>>>>>> master
           CIBW_TEST_COMMAND: pytest {project}
 
       - uses: actions/upload-artifact@v3
@@ -100,10 +124,34 @@ jobs:
           name: dist
           path: dist
 
+  forward:
+    name: Forward / ${{ matrix.os }} / Python 3.${{ matrix.minor }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04]
+        minor: [11]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+      - uses: pypa/cibuildwheel@v2.13.0
+        with:
+          output-dir: dist
+        env:
+          CIBW_BUILD: cp3${{ matrix.minor }}-*
+          CIBW_BEFORE_BUILD: pip install -r {project}/requirements-build.txt
+          CIBW_BEFORE_TEST: pip install -r {project}/requirements-test-forward.txt
+          CIBW_TEST_COMMAND: pytest {project}
+
   upload:
     name: Publish
     if: github.event_name == 'release' && github.event.action == 'published'
+<<<<<<< HEAD
     needs: [tar_gz, whl_3_8, whl_gte_3_9_to_3_11, whl_3_12]
+=======
+    needs: [tar_gz, whl_lt_3_9, whl_gte_3_9, forward]
+>>>>>>> master
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v3
