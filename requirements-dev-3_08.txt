@@ -3,4 +3,4 @@ hypothesis==6.70.0
 invoke==1.7.1
 pytest==7.1.2
 tzdata==2022.1
-numpy==1.18.5
+numpy==1.19.5
