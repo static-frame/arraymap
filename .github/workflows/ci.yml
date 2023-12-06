@@ -12,10 +12,13 @@ on:
 jobs:
   tar_gz:
     name: Package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@master
+        with:
+          python-version: 3.12
+      - run: pip install -r requirements-build-3_12.txt
       - run: python setup.py sdist
       - uses: actions/upload-artifact@v3
         with:
@@ -31,8 +34,8 @@ jobs:
         minor: [8]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@master
       - uses: pypa/cibuildwheel@v2.16.2
         with:
           output-dir: dist
@@ -57,8 +60,8 @@ jobs:
         minor: [9, 10, 11]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@master
       - uses: pypa/cibuildwheel@v2.16.2
         with:
           output-dir: dist
@@ -83,8 +86,8 @@ jobs:
         minor: [12]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@master
       - uses: pypa/cibuildwheel@v2.16.2
         with:
           output-dir: dist
