@@ -6,10 +6,8 @@ import os
 
 AM_VERSION = "0.1.9"
 
-
 with open("README.rst") as file:
     LONG_DESCRIPTION = file.read()
-
 
 def get_ext_dir(*components: tp.Iterable[str]) -> tp.Sequence[str]:
     dirs = []
@@ -19,7 +17,6 @@ def get_ext_dir(*components: tp.Iterable[str]) -> tp.Sequence[str]:
             dirs.append(fp)
     return dirs
 
-
 extension = setuptools.Extension(
     "arraymap",
     ["arraymap.c"],
@@ -28,7 +25,6 @@ extension = setuptools.Extension(
     define_macros=[("AM_VERSION", AM_VERSION)],
     libraries=["npymath"],
 )
-
 
 setuptools.setup(
     name="arraymap",
