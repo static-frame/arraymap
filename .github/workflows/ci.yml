@@ -93,7 +93,7 @@ jobs:
         if: startsWith(matrix.os, 'windows-')
 
       - run: pip install pipx
-      if: startsWith(matrix.os, 'macos-')
+        if: startsWith(matrix.os, 'macos-')
 
       - uses: pypa/cibuildwheel@v2.16.2
         with:
@@ -127,10 +127,10 @@ jobs:
       - run: echo '::add-matcher::.github/problem-matchers/msvc.json'
         if: startsWith(matrix.os, 'windows-')
 
-        - run: pip install pipx # only for macos amd64
+      - run: pip install pipx # only for macos amd64
         if: startsWith(matrix.os, 'macos-')
 
-        - uses: pypa/cibuildwheel@v2.16.2
+      - uses: pypa/cibuildwheel@v2.16.2
         with:
           output-dir: dist
         env:
