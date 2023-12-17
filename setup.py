@@ -4,7 +4,7 @@ import site
 import os
 
 
-AM_VERSION = "0.1.9"
+AM_VERSION = "0.2.0"
 
 with open("README.rst") as file:
     LONG_DESCRIPTION = file.read()

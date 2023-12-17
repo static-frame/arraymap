@@ -36,6 +36,14 @@ ArrayMap requires the following:
 What is New in ArrayMap
 -------------------------
 
+0.2.0
+........
+
+Now building wheels for 3.12.
+
+Now building functional wheels for Mac OS ``arm64`` / Apple Silicon.
+
+
 0.1.9
 ........
 
