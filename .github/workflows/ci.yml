@@ -25,12 +25,28 @@ jobs:
           name: dist
           path: dist
 
+  matrix_config:
+    name: Matrix Runner Config
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix_os: ${{ steps.step.outputs.matrix_os }}
+    steps:
+      - run: echo "$GITHUB_EVENT_NAME"
+      - id: step
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "release" ]; then
+            echo 'matrix_os=["macos-13-xlarge", "ubuntu-22.04", "windows-2022"]' >> $GITHUB_OUTPUT
+          else
+            echo 'matrix_os=["macos-13", "ubuntu-22.04", "windows-2022"]' >> $GITHUB_OUTPUT
+          fi
+
   whl_3_8:
     name: Build / ${{ matrix.os }} / Python 3.${{ matrix.minor }}
+    needs: matrix_config
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, ubuntu-22.04, windows-2022]
+        os: ${{ fromJson(needs.matrix_config.outputs.matrix_os) }}
         minor: [8]
     runs-on: ${{ matrix.os }}
     steps:
@@ -41,17 +57,17 @@ jobs:
       - run: echo '::add-matcher::.github/problem-matchers/msvc.json'
         if: matrix.os == 'windows-2022'
 
+      - run: pip install pipx # only for macos amd64
       - uses: pypa/cibuildwheel@v2.16.2
         with:
           output-dir: dist
         env:
           CIBW_BUILD: cp3${{ matrix.minor }}-*
           CIBW_ARCHS_WINDOWS: x86 AMD64
-          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
+          CIBW_ARCHS_MACOS: x86_64 arm64
           CIBW_BEFORE_BUILD: pip install -r {project}/requirements-build-3_08.txt
           CIBW_BEFORE_TEST: pip install -r {project}/requirements-dev-3_08.txt
           CIBW_TEST_COMMAND: pytest {project}
-
       - uses: actions/upload-artifact@v3
         with:
           name: dist
@@ -59,10 +75,11 @@ jobs:
 
   whl_gte_3_9_to_3_11:
     name: Build / ${{ matrix.os }} / Python 3.${{ matrix.minor }}
+    needs: matrix_config
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, ubuntu-22.04, windows-2022]
+        os: ${{fromJson(needs.matrix_config.outputs.matrix_os)}}
         minor: [9, 10, 11]
     runs-on: ${{ matrix.os }}
     steps:
@@ -73,17 +90,17 @@ jobs:
       - run: echo '::add-matcher::.github/problem-matchers/msvc.json'
         if: matrix.os == 'windows-2022'
 
+      - run: pip install pipx
       - uses: pypa/cibuildwheel@v2.16.2
         with:
           output-dir: dist
         env:
           CIBW_BUILD: cp3${{ matrix.minor }}-*
           CIBW_ARCHS_WINDOWS: x86 AMD64
-          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
+          CIBW_ARCHS_MACOS: x86_64 arm64
           CIBW_BEFORE_BUILD: pip install -r {project}/requirements-build-3_11.txt
           CIBW_BEFORE_TEST: pip install -r {project}/requirements-dev-3_11.txt
           CIBW_TEST_COMMAND: pytest {project}
-
       - uses: actions/upload-artifact@v3
         with:
           name: dist
@@ -91,10 +108,11 @@ jobs:
 
   whl_3_12:
     name: Build / ${{ matrix.os }} / Python 3.${{ matrix.minor }}
+    needs: matrix_config
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, ubuntu-22.04, windows-2022]
+        os: ${{fromJson(needs.matrix_config.outputs.matrix_os)}}
         minor: [12]
     runs-on: ${{ matrix.os }}
     steps:
@@ -105,17 +123,17 @@ jobs:
       - run: echo '::add-matcher::.github/problem-matchers/msvc.json'
         if: matrix.os == 'windows-2022'
 
+      - run: pip install pipx
       - uses: pypa/cibuildwheel@v2.16.2
         with:
           output-dir: dist
         env:
           CIBW_BUILD: cp3${{ matrix.minor }}-*
           CIBW_ARCHS_WINDOWS: x86 AMD64
-          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
+          CIBW_ARCHS_MACOS: x86_64 arm64
           CIBW_BEFORE_BUILD: pip install -r {project}/requirements-build-3_12.txt
           CIBW_BEFORE_TEST: pip install -r {project}/requirements-dev-3_12.txt
           CIBW_TEST_COMMAND: pytest {project}
-
       - uses: actions/upload-artifact@v3
         with:
           name: dist
@@ -123,7 +141,7 @@ jobs:
 
   upload:
     name: Publish
-    if: github.event_name == 'release' && github.event.action == 'published'
+    if: github.event_name == 'release'
     needs: [tar_gz, whl_3_8, whl_gte_3_9_to_3_11, whl_3_12]
     runs-on: ubuntu-latest
     steps:
