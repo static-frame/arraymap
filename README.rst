@@ -28,7 +28,7 @@ Dependencies
 
 ArrayMap requires the following:
 
-- Python >= 3.7
+- Python >= 3.8
 - NumPy >= 1.18.5
 
 

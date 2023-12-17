@@ -6,10 +6,8 @@ import os
 
 AM_VERSION = "0.1.9"
 
-
 with open("README.rst") as file:
     LONG_DESCRIPTION = file.read()
-
 
 def get_ext_dir(*components: tp.Iterable[str]) -> tp.Sequence[str]:
     dirs = []
@@ -18,7 +16,6 @@ def get_ext_dir(*components: tp.Iterable[str]) -> tp.Sequence[str]:
         if os.path.exists(fp):
             dirs.append(fp)
     return dirs
-
 
 extension = setuptools.Extension(
     "arraymap",
@@ -29,14 +26,13 @@ extension = setuptools.Extension(
     libraries=["npymath"],
 )
 
-
 setuptools.setup(
     name="arraymap",
     version=AM_VERSION,
     description="Dictionary-like lookup from NumPy array values to their integer positions",
     long_description=LONG_DESCRIPTION,
-    python_requires=">=3.7.0",
-    install_requires=["numpy>=1.18.5"],
+    python_requires=">=3.8.0",
+    install_requires=["numpy>=1.19.5"],
     url="https://github.com/static-frame/arraymap",
     author="Christopher Ariza, Brandt Bucher",
     license="MIT",
@@ -48,11 +44,11 @@ setuptools.setup(
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: Microsoft :: Windows",
         "Operating System :: POSIX",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
     ext_modules=[extension],
 )
