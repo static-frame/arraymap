@@ -75,7 +75,7 @@ jobs:
           name: dist
           path: dist
 
-  whl_gte_3_9_to_3_11:
+  whl_3_9_to_3_11:
     name: Build / ${{ matrix.os }} / Python 3.${{ matrix.minor }}
     needs: matrix_config
     strategy:
@@ -148,7 +148,7 @@ jobs:
   upload:
     name: Publish
     if: github.event_name == 'release'
-    needs: [tar_gz, whl_3_8, whl_gte_3_9_to_3_11, whl_3_12]
+    needs: [tar_gz, whl_3_8, whl_3_9_to_3_11, whl_3_12]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v3
