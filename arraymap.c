@@ -452,7 +452,6 @@ typedef struct FAMIObject {
     Py_ssize_t index; // current index state, mutated in-place
 } FAMIObject;
 
-
 static void
 fami_dealloc(FAMIObject *self)
 {
@@ -551,7 +550,6 @@ static PyTypeObject FAMIType = {
     .tp_name = "arraymap.FrozenAutoMapIterator",
 };
 
-
 static PyObject *
 fami_new(FAMObject *fam, ViewKind kind, bool reversed)
 {
@@ -602,14 +600,12 @@ name(PyObject *left, PyObject *right)                     \
     return result;                                        \
 }
 
-
 FAMV_SET_OP(famv_and, And)
 FAMV_SET_OP(famv_or, Or)
 FAMV_SET_OP(famv_subtract, Subtract)
 FAMV_SET_OP(famv_xor, Xor)
 
 # undef FAMV_SET_OP
-
 
 static PyNumberMethods famv_as_number = {
     .nb_and = (binaryfunc) famv_and,
@@ -618,10 +614,8 @@ static PyNumberMethods famv_as_number = {
     .nb_xor = (binaryfunc) famv_xor,
 };
 
-
 static int fam_contains(FAMObject *, PyObject *);
 static PyObject *famv_fami_new(FAMVObject *);
-
 
 static int
 famv_contains(FAMVObject *self, PyObject *other)
@@ -638,11 +632,9 @@ famv_contains(FAMVObject *self, PyObject *other)
     return result;
 }
 
-
 static PySequenceMethods famv_as_sequence = {
     .sq_contains = (objobjproc) famv_contains,
 };
-
 
 static void
 famv_dealloc(FAMVObject *self)
@@ -651,13 +643,11 @@ famv_dealloc(FAMVObject *self)
     PyObject_Del((PyObject *)self);
 }
 
-
 static PyObject *
 famv_fami_new(FAMVObject *self)
 {
     return fami_new(self->fam, self->kind, false);
 }
-
 
 static PyObject *
 famv_length_hint(FAMVObject *self)
@@ -665,13 +655,11 @@ famv_length_hint(FAMVObject *self)
     return PyLong_FromSsize_t(self->fam->keys_size);
 }
 
-
 static PyObject *
 famv_reversed(FAMVObject *self)
 {
     return fami_new(self->fam, self->kind, true);
 }
-
 
 static PyObject *
 famv_isdisjoint(FAMVObject *self, PyObject *other)
@@ -684,7 +672,6 @@ famv_isdisjoint(FAMVObject *self, PyObject *other)
     Py_DECREF(intersection);
     return PyBool_FromLong(result);
 }
-
 
 static PyObject *
 famv_richcompare(FAMVObject *self, PyObject *other, int op)
@@ -704,14 +691,12 @@ famv_richcompare(FAMVObject *self, PyObject *other, int op)
     return result;
 }
 
-
 static PyMethodDef famv_methods[] = {
     {"__length_hint__", (PyCFunction) famv_length_hint, METH_NOARGS, NULL},
     {"__reversed__", (PyCFunction) famv_reversed, METH_NOARGS, NULL},
     {"isdisjoint", (PyCFunction) famv_isdisjoint, METH_O, NULL},
     {NULL},
 };
-
 
 static PyTypeObject FAMVType = {
     PyVarObject_HEAD_INIT(NULL, 0)
@@ -724,7 +709,6 @@ static PyTypeObject FAMVType = {
     .tp_name = "arraymap.FrozenAutoMapView",
     .tp_richcompare = (richcmpfunc) famv_richcompare,
 };
-
 
 static PyObject *
 famv_new(FAMObject *fam, ViewKind kind)
