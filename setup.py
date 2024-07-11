@@ -9,6 +9,7 @@ AM_VERSION = "0.2.2"
 with open("README.rst") as file:
     LONG_DESCRIPTION = file.read()
 
+
 def get_ext_dir(*components: tp.Iterable[str]) -> tp.Sequence[str]:
     dirs = []
     for sp in site.getsitepackages():
@@ -16,6 +17,7 @@ def get_ext_dir(*components: tp.Iterable[str]) -> tp.Sequence[str]:
         if os.path.exists(fp):
             dirs.append(fp)
     return dirs
+
 
 extension = setuptools.Extension(
     "arraymap",
