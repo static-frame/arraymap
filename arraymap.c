@@ -86,7 +86,8 @@ typedef enum KeysArrayType{
 NPY_DATETIMEUNIT
 dt_unit_from_array(PyArrayObject* a) {
     // This is based on get_datetime_metadata_from_dtype in the NumPy source, but that function is private. This does not check that the dytpe is of the appropriate type.
-    PyArray_DatetimeMetaData* dma = &(((PyArray_DatetimeDTypeMetaData *)PyArray_DESCR(a)->c_metadata)->meta);
+    PyArray_Descr* dt = PyArray_DESCR(a); // borrowed ref
+    PyArray_DatetimeMetaData* dma = &(((PyArray_DatetimeDTypeMetaData *)PyDataType_C_METADATA(dt))->meta);
     return dma->base;
 }
 
@@ -451,7 +452,6 @@ typedef struct FAMIObject {
     Py_ssize_t index; // current index state, mutated in-place
 } FAMIObject;
 
-
 static void
 fami_dealloc(FAMIObject *self)
 {
@@ -550,7 +550,6 @@ static PyTypeObject FAMIType = {
     .tp_name = "arraymap.FrozenAutoMapIterator",
 };
 
-
 static PyObject *
 fami_new(FAMObject *fam, ViewKind kind, bool reversed)
 {
@@ -601,14 +600,12 @@ name(PyObject *left, PyObject *right)                     \
     return result;                                        \
 }
 
-
 FAMV_SET_OP(famv_and, And)
 FAMV_SET_OP(famv_or, Or)
 FAMV_SET_OP(famv_subtract, Subtract)
 FAMV_SET_OP(famv_xor, Xor)
 
 # undef FAMV_SET_OP
-
 
 static PyNumberMethods famv_as_number = {
     .nb_and = (binaryfunc) famv_and,
@@ -617,10 +614,8 @@ static PyNumberMethods famv_as_number = {
     .nb_xor = (binaryfunc) famv_xor,
 };
 
-
 static int fam_contains(FAMObject *, PyObject *);
 static PyObject *famv_fami_new(FAMVObject *);
-
 
 static int
 famv_contains(FAMVObject *self, PyObject *other)
@@ -637,11 +632,9 @@ famv_contains(FAMVObject *self, PyObject *other)
     return result;
 }
 
-
 static PySequenceMethods famv_as_sequence = {
     .sq_contains = (objobjproc) famv_contains,
 };
-
 
 static void
 famv_dealloc(FAMVObject *self)
@@ -650,13 +643,11 @@ famv_dealloc(FAMVObject *self)
     PyObject_Del((PyObject *)self);
 }
 
-
 static PyObject *
 famv_fami_new(FAMVObject *self)
 {
     return fami_new(self->fam, self->kind, false);
 }
-
 
 static PyObject *
 famv_length_hint(FAMVObject *self)
@@ -664,13 +655,11 @@ famv_length_hint(FAMVObject *self)
     return PyLong_FromSsize_t(self->fam->keys_size);
 }
 
-
 static PyObject *
 famv_reversed(FAMVObject *self)
 {
     return fami_new(self->fam, self->kind, true);
 }
-
 
 static PyObject *
 famv_isdisjoint(FAMVObject *self, PyObject *other)
@@ -683,7 +672,6 @@ famv_isdisjoint(FAMVObject *self, PyObject *other)
     Py_DECREF(intersection);
     return PyBool_FromLong(result);
 }
-
 
 static PyObject *
 famv_richcompare(FAMVObject *self, PyObject *other, int op)
@@ -703,14 +691,12 @@ famv_richcompare(FAMVObject *self, PyObject *other, int op)
     return result;
 }
 
-
 static PyMethodDef famv_methods[] = {
     {"__length_hint__", (PyCFunction) famv_length_hint, METH_NOARGS, NULL},
     {"__reversed__", (PyCFunction) famv_reversed, METH_NOARGS, NULL},
     {"isdisjoint", (PyCFunction) famv_isdisjoint, METH_O, NULL},
     {NULL},
 };
-
 
 static PyTypeObject FAMVType = {
     PyVarObject_HEAD_INIT(NULL, 0)
@@ -723,7 +709,6 @@ static PyTypeObject FAMVType = {
     .tp_name = "arraymap.FrozenAutoMapView",
     .tp_richcompare = (richcmpfunc) famv_richcompare,
 };
-
 
 static PyObject *
 famv_new(FAMObject *fam, ViewKind kind)
@@ -941,7 +926,7 @@ lookup_hash_unicode(
     Py_ssize_t table_pos = hash & mask;
 
     PyArrayObject *a = (PyArrayObject *)self->keys;
-    Py_ssize_t dt_size = PyArray_DESCR(a)->elsize / UCS4_SIZE;
+    Py_ssize_t dt_size = PyArray_ITEMSIZE(a) / UCS4_SIZE;
     Py_ssize_t cmp_bytes = Py_MIN(key_size, dt_size) * UCS4_SIZE;
 
     Py_hash_t h = 0;
@@ -983,7 +968,7 @@ lookup_hash_string(
     Py_ssize_t table_pos = hash & mask;
 
     PyArrayObject *a = (PyArrayObject *)self->keys;
-    Py_ssize_t dt_size = PyArray_DESCR(a)->elsize;
+    Py_ssize_t dt_size = PyArray_ITEMSIZE(a);
     Py_ssize_t cmp_bytes = Py_MIN(key_size, dt_size);
 
     Py_hash_t h = 0;
@@ -1284,7 +1269,7 @@ lookup_unicode(FAMObject *self, PyObject* key) {
         return -1;
     }
     PyArrayObject *a = (PyArrayObject *)self->keys;
-    Py_ssize_t dt_size = PyArray_DESCR(a)->elsize / UCS4_SIZE;
+    Py_ssize_t dt_size = PyArray_ITEMSIZE(a) / UCS4_SIZE;
     // if the key_size is greater than the dtype size of the array, we know there cannot be a match
     Py_ssize_t k_size = PyUnicode_GetLength(key);
     if (k_size > dt_size) {
@@ -1305,7 +1290,7 @@ lookup_string(FAMObject *self, PyObject* key) {
         return -1;
     }
     PyArrayObject *a = (PyArrayObject *)self->keys;
-    Py_ssize_t dt_size = PyArray_DESCR(a)->elsize;
+    Py_ssize_t dt_size = PyArray_ITEMSIZE(a);
     Py_ssize_t k_size = PyBytes_GET_SIZE(key);
     if (k_size > dt_size) {
         return -1;
@@ -1650,7 +1635,7 @@ copy_to_new(PyTypeObject *cls, FAMObject *self, FAMObject *new)
     new->key_buffer = NULL;
     if (new->keys_array_type == KAT_UNICODE) {
         PyArrayObject *a = (PyArrayObject *)new->keys;
-        Py_ssize_t dt_size = PyArray_DESCR(a)->elsize / UCS4_SIZE;
+        Py_ssize_t dt_size = PyArray_ITEMSIZE(a) / UCS4_SIZE;
         new->key_buffer = (Py_UCS4*)PyMem_Malloc((dt_size+1) * UCS4_SIZE);
     }
 
@@ -1831,7 +1816,7 @@ get(FAMObject *self, PyObject *key, PyObject *missing) {
 # define GET_ALL_FLEXIBLE(char_type, get_end_func, lookup_func, hash_func, to_obj_func) \
 {                                                                             \
     char_type* v;                                                             \
-    Py_ssize_t dt_size = PyArray_DESCR(key_array)->elsize / sizeof(char_type);\
+    Py_ssize_t dt_size = PyArray_ITEMSIZE(key_array) / sizeof(char_type);\
     Py_ssize_t k_size;                                                        \
     for (; i < key_size; i++) {                                               \
         v = (char_type*)PyArray_GETPTR1(key_array, i);                        \
@@ -2019,7 +2004,7 @@ fam_get_all(FAMObject *self, PyObject *key) {
 # define GET_ANY_FLEXIBLE(char_type, get_end_func, lookup_func, hash_func)    \
 {                                                                             \
     char_type* v;                                                             \
-    Py_ssize_t dt_size = PyArray_DESCR(key_array)->elsize / sizeof(char_type);\
+    Py_ssize_t dt_size = PyArray_ITEMSIZE(key_array) / sizeof(char_type);\
     Py_ssize_t k_size;                                                        \
     for (; i < key_size; i++) {                                               \
         v = (char_type*)PyArray_GETPTR1(key_array, i);                        \
@@ -2539,13 +2524,13 @@ fam_init(PyObject *self, PyObject *args, PyObject *kwargs)
                 break;
             case KAT_UNICODE: {
                 // Over allocate buffer by 1 so there is room for null at end. This buffer is only used in lookup();
-                Py_ssize_t dt_size = PyArray_DESCR(a)->elsize / UCS4_SIZE;
+                Py_ssize_t dt_size = PyArray_ITEMSIZE(a) / UCS4_SIZE;
                 fam->key_buffer = (Py_UCS4*)PyMem_Malloc((dt_size+1) * UCS4_SIZE);
                 INSERT_FLEXIBLE(Py_UCS4, insert_unicode, ucs4_get_end_p);
                 break;
             }
             case KAT_STRING: {
-                Py_ssize_t dt_size = PyArray_DESCR(a)->elsize;
+                Py_ssize_t dt_size = PyArray_ITEMSIZE(a);
                 INSERT_FLEXIBLE(char, insert_string, char_get_end_p);
                 break;
             }
