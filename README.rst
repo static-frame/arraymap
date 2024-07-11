@@ -36,6 +36,12 @@ ArrayMap requires the following:
 What is New in ArrayMap
 -------------------------
 
+0.3.0
+........
+
+Now building with NumPy 2.0.
+
+
 0.2.2
 ........
 
