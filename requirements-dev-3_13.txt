@@ -1,0 +1,7 @@
+black==24.4.2
+hypothesis==6.70.0
+invoke==2.2.0
+pytest==8.3.3
+tzdata==2022.1
+numpy==2.1.3
+
