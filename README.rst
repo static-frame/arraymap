@@ -36,6 +36,12 @@ ArrayMap requires the following:
 What is New in ArrayMap
 -------------------------
 
+0.4.0
+........
+
+Now building wheels for Python 3.13.
+
+
 0.3.0
 ........
 

@@ -4,7 +4,7 @@ import site
 import os
 
 
-AM_VERSION = "0.3.0"
+AM_VERSION = "0.4.0"
 
 with open("README.rst") as file:
     LONG_DESCRIPTION = file.read()
@@ -50,6 +50,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
     ],
     ext_modules=[extension],
 )
