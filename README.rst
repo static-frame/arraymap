@@ -1,14 +1,11 @@
+NOTE!
+============
 
+The core components of the ``arraymap`` package (``AutoMap``, ``FrozenAutoMap``) have been integrated into ``arraykit``:
 
-.. image:: https://img.shields.io/pypi/pyversions/arraymap.svg
-  :target: https://pypi.org/project/arraymap
+https://github.com/static-frame/arraykit
 
-.. image:: https://img.shields.io/pypi/v/arraymap.svg
-  :target: https://pypi.org/project/arraymap
-
-.. image:: https://img.shields.io/github/actions/workflow/status/static-frame/arraymap/ci.yml?branch=master&label=build&logo=Github
-  :target: https://github.com/static-frame/arraymap/actions/workflows/ci.yml
-
+As future development will happen there, this repository is now archived.
 
 
 arraymap
